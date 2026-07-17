@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import PlaceholderPage from '../pages/PlaceholderPage'
 import HomePage from '../pages/flights/HomePage'
 import FlightsPage from '../pages/flights/FlightsPage'
+import FlightDetailPage from '../pages/flights/FlightDetailPage'
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
 import ProfilePage from '../pages/profile/ProfilePage'
@@ -51,7 +52,7 @@ export default function AppRouter() {
             {/* Vuelos */}
             <Route path="/" element={<HomePage />} />
             <Route path="/flights" element={<FlightsPage />} />
-            <Route path="/flights/:id" element={<PlaceholderPage title="Detalle de vuelo" />} />
+            <Route path="/flights/:id" element={<FlightDetailPage />} />
 
             {/* Aerolíneas, Pasajeros, Aeropuertos (públicos) */}
             <Route path="/airlines" element={<PlaceholderPage title="Aerolíneas" />} />
