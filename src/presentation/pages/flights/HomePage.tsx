@@ -9,7 +9,6 @@ import {
   ArrowLeftRight,
   ChevronDown,
   LogIn,
-  RefreshCw,
   Search,
   Info,
   X,
@@ -18,16 +17,14 @@ import {
   LayoutDashboard,
 } from 'lucide-react'
 
-import { useFlightsStore } from '@/presentation/store/flights.store'
 import { useAuthStore } from '@/presentation/store/auth.store'
 import { getFlightsUseCase } from '@/infrastructure/factories/flight.factory'
 import type { Flight } from '@/domain/entities/flight.entity'
 import type { PromoBanner } from '@/domain/entities/promo-banner.entity'
 import { getBannerUseCase } from '@/infrastructure/factories/banner.factory'
 import { Button } from '@/presentation/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/presentation/components/ui/card'
+import { Card } from '@/presentation/components/ui/card'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
-import { FlightCard } from '@/presentation/components/flight-card'
 import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
 import { formatPrice } from '@/presentation/utils/formatters'
 
@@ -570,7 +567,7 @@ function FeaturesSection() {
  */
 function AudienceSection() {
   const { isAuthenticated, user } = useAuthStore()
-  const isStaff = isAuthenticated && user?.esStaff
+  const isStaff = isAuthenticated && (user?.esStaff || user?.esOperador)
 
   return (
     <section className="px-4 pb-20 sm:px-6">
@@ -618,130 +615,13 @@ function AudienceSection() {
   )
 }
 
-function FlightsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-6 w-40" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
-
-function FlightsError({ status, message, onRetry }: { status: number; message: string; onRetry: () => void }) {
-  if (status === 401) {
-    return (
-      <Card className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 p-8 text-center sm:flex-row sm:text-left">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <LogIn className="h-6 w-6 text-primary" />
-        </div>
-        <div className="flex-1">
-          <p className="font-semibold">Inicia sesión para ver los vuelos</p>
-          <p className="mt-1 text-sm text-muted-foreground">{message}</p>
-        </div>
-        <Button asChild size="lg" className="w-full rounded-full sm:w-auto">
-          <Link to="/login">
-            <LogIn className="h-4 w-4" />
-            Iniciar sesión
-          </Link>
-        </Button>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 p-8 text-center sm:flex-row sm:text-left">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-        <RefreshCw className="h-6 w-6 text-destructive" />
-      </div>
-      <div className="flex-1">
-        <p className="font-semibold">No se pudieron cargar los vuelos</p>
-        <p className="mt-1 text-sm text-muted-foreground">{message}</p>
-      </div>
-      <Button variant="outline" size="lg" onClick={onRetry} className="w-full rounded-full sm:w-auto">
-        <RefreshCw className="h-4 w-4" />
-        Reintentar
-      </Button>
-    </Card>
-  )
-}
-
 export default function HomePage() {
-  const { flights, isLoading, error, fetchFlights } = useFlightsStore()
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-
-  useEffect(() => {
-    fetchFlights({ ordering: 'salida_programada' })
-  }, [fetchFlights])
-
   return (
     <div className="flex flex-col">
       <TopInfoBar />
       <SearchPanel />
       <PromoCard />
       <DestinationOffersSection />
-
-      {isAuthenticated && (
-        <section className="px-4 py-4 sm:px-6">
-          <div className="mx-auto w-full max-w-[1280px]">
-            <div className="mb-8 flex items-end justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight">Vuelos próximos</h2>
-                <p className="text-sm text-muted-foreground">Monitoreo en tiempo real de la flota activa</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Actualizar"
-                onClick={() => fetchFlights({ ordering: 'salida_programada' })}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {isLoading && <FlightsSkeleton />}
-
-            {!isLoading && error && (
-              <FlightsError
-                status={error.status}
-                message={error.message}
-                onRetry={() => fetchFlights({ ordering: 'salida_programada' })}
-              />
-            )}
-
-            {!isLoading && !error && flights.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground">No hay vuelos programados por el momento.</p>
-            )}
-
-            {!isLoading && !error && flights.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {flights.slice(0, 6).map((flight) => (
-                  <FlightCard key={flight.id} flight={flight} />
-                ))}
-              </div>
-            )}
-
-            <div className="mt-10 text-center">
-              <Button variant="outline" size="lg" asChild className="rounded-full">
-                <Link to="/flights">
-                  Ver todos los vuelos
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
-
       <FeaturesSection />
       <AudienceSection />
     </div>
