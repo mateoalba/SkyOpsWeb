@@ -182,7 +182,14 @@ export default function ProfilePage() {
             <UserIcon className="h-6 w-6" />
           </div>
           <div>
-            <p className="font-semibold">{profile?.username}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold">{profile?.username}</p>
+              {profile && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  {profile.isStaff ? 'Administrador' : profile.esOperador ? 'Operador' : 'Pasajero'}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{profile?.email}</p>
           </div>
         </div>

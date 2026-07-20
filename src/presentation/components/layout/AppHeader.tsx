@@ -61,7 +61,7 @@ export function AppHeader() {
         <Link to="/" className="flex items-center gap-2 text-3xl font-extrabold" onClick={close}>
           <PlaneTakeoff className="h-7 w-7 text-primary" />
           <span>
-            <span className="text-white">Sky</span>
+            <span className="text-foreground">Sky</span>
             <span className="text-primary">Ops</span>
           </span>
         </Link>
@@ -147,7 +147,7 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link to="/mis-reservas">Mis reservas</Link>
                 </DropdownMenuItem>
-                {user?.esStaff && (
+                {(user?.esStaff || user?.esOperador) && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">Panel de administración</Link>
                   </DropdownMenuItem>
@@ -257,10 +257,10 @@ export function AppHeader() {
                 )}
               </div>
 
-              {/* Solo usuarios staff (is_staff en el backend) ven la administración.
-                  Un pasajero normal nunca llega a ver estos links, ni siquiera si
-                  escribe la URL a mano (RequireAdmin lo bloquea igual). */}
-              {isAuthenticated && user?.esStaff && (
+              {/* Admin y Operador ven la administración (ambos tienen acceso real
+                  en el backend). Un pasajero normal nunca llega a ver estos links,
+                  ni siquiera escribiendo la URL a mano (RequireAdmin lo bloquea igual). */}
+              {isAuthenticated && (user?.esStaff || user?.esOperador) && (
                 <>
                   <Separator className="my-4" />
                   <div className="space-y-1">

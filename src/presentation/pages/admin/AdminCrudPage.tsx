@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react
 
 import type { AdminRecord } from '@/domain/ports/admin-resource-repository.port'
 import { ApiException } from '@/domain/exceptions/api-exception'
+import { useAuthStore } from '@/presentation/store/auth.store'
 import {
   getAdminResourceListUseCase,
   createAdminResourceUseCase,
@@ -66,6 +67,12 @@ function defaultCell(value: unknown): ReactNode {
 }
 
 export function AdminCrudPage({ title, endpoint, columns, FormComponent, itemLabel = 'registros' }: AdminCrudPageProps) {
+  // Solo Admin (esStaff) puede eliminar — Operador puede leer, crear y
+  // editar (permissions.EsOperador en el backend rechaza su DELETE con
+  // 403), así que ni le mostramos el botón: se entera de la restricción
+  // por la ausencia de la acción, no por un error al intentarla.
+  const puedeEliminar = useAuthStore((state) => state.user?.esStaff ?? false)
+
   const [rows, setRows] = useState<AdminRecord[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -243,14 +250,16 @@ export function AdminCrudPage({ title, endpoint, columns, FormComponent, itemLab
                         <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setRowToDelete(row)}
-                          aria-label="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {puedeEliminar && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRowToDelete(row)}
+                            aria-label="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
