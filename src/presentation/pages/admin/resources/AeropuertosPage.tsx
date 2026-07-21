@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-import { Building2, DoorOpen, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Building2, DoorOpen, MapPin, Trash2 } from 'lucide-react'
 
 import type { AdminRecord } from '@/domain/ports/admin-resource-repository.port'
 import { AdminCrudPage, type AdminCardActions, type AdminColumn, type AdminFormProps } from '@/presentation/pages/admin/AdminCrudPage'
@@ -237,40 +237,39 @@ const columns: AdminColumn[] = [
 /**
  * Tarjeta de aeropuerto para la grilla del dashboard: foto arriba (la
  * misma que ve el pasajero en el Home — prioriza el archivo subido,
- * `foto_resuelta`, y cae al link manual `foto_url`), datos abajo y las
- * acciones de editar/eliminar en la esquina.
+ * `foto_resuelta`, y cae al link manual `foto_url`), con el código IATA
+ * superpuesto en la esquina de la foto. Hacer clic en la foto abre el panel
+ * de edición (no hay lápiz aparte); el tacho de eliminar sigue abajo.
  */
 function AeropuertoCard(row: AdminRecord, { onEdit, onDelete, canDelete }: AdminCardActions) {
   const foto = String(row.foto_resuelta ?? row.foto_url ?? '')
+  const nombre = String(row.nombre ?? '')
 
   return (
     <Card className="overflow-hidden">
-      {foto ? (
-        <img src={foto} alt={String(row.nombre ?? '')} className="h-36 w-full object-cover" />
-      ) : (
-        <div className="flex h-36 w-full items-center justify-center bg-muted">
-          <Building2 className="h-8 w-8 text-muted-foreground" />
-        </div>
-      )}
-      <CardContent className="space-y-2 pt-4">
-        <div className="flex items-start justify-between gap-2">
-          <p className="line-clamp-2 font-medium leading-tight">{String(row.nombre ?? '')}</p>
-          <Badge variant="secondary" className="shrink-0">
-            {String(row.codigo_iata ?? '')}
-          </Badge>
-        </div>
+      <button type="button" onClick={onEdit} aria-label={`Editar ${nombre}`} className="relative block w-full">
+        {foto ? (
+          <img src={foto} alt={nombre} className="h-24 w-full object-cover" />
+        ) : (
+          <div className="flex h-24 w-full items-center justify-center bg-muted">
+            <Building2 className="h-8 w-8 text-muted-foreground" />
+          </div>
+        )}
+        <Badge variant="secondary" className="absolute right-2 top-2 shadow">
+          {String(row.codigo_iata ?? '')}
+        </Badge>
+      </button>
+      <CardContent className="space-y-1 p-3">
+        <p className="line-clamp-1 font-medium leading-tight">{nombre}</p>
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
           {String(row.ciudad ?? '')}, {String(row.pais ?? '')}
         </p>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <DoorOpen className="h-3.5 w-3.5 shrink-0" />
-          {String(row.total_puertas ?? 0)} puerta{Number(row.total_puertas ?? 0) === 1 ? '' : 's'}
-        </p>
-        <div className="flex justify-end gap-1 pt-1">
-          <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Editar">
-            <Pencil className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center justify-between pt-1">
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <DoorOpen className="h-3.5 w-3.5 shrink-0" />
+            {String(row.total_puertas ?? 0)} puerta{Number(row.total_puertas ?? 0) === 1 ? '' : 's'}
+          </p>
           {canDelete && (
             <Button variant="ghost" size="icon" onClick={onDelete} aria-label="Eliminar">
               <Trash2 className="h-4 w-4" />

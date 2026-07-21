@@ -187,7 +187,7 @@ export function AdminCrudPage({
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+    <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2">
