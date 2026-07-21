@@ -51,12 +51,26 @@ export interface AdminFormProps {
   error: string | null
 }
 
+export interface AdminCardActions {
+  onEdit: () => void
+  onDelete: () => void
+  /** Solo Admin (esStaff) puede eliminar — Operador no ve la acción. */
+  canDelete: boolean
+}
+
 interface AdminCrudPageProps {
   title: string
   endpoint: string
   columns: AdminColumn[]
   FormComponent: ComponentType<AdminFormProps>
   itemLabel?: string
+  /**
+   * Si se provee, el listado se muestra como una grilla de tarjetas (4 por
+   * fila en desktop) en vez de la tabla genérica — útil para recursos con
+   * foto, como Aeropuertos. `columns` se ignora en ese caso (solo se usa
+   * para nada visual, pero se sigue pidiendo por consistencia del tipo).
+   */
+  renderCard?: (row: AdminRecord, actions: AdminCardActions) => ReactNode
 }
 
 function defaultCell(value: unknown): ReactNode {
@@ -66,7 +80,14 @@ function defaultCell(value: unknown): ReactNode {
   return String(value)
 }
 
-export function AdminCrudPage({ title, endpoint, columns, FormComponent, itemLabel = 'registros' }: AdminCrudPageProps) {
+export function AdminCrudPage({
+  title,
+  endpoint,
+  columns,
+  FormComponent,
+  itemLabel = 'registros',
+  renderCard,
+}: AdminCrudPageProps) {
   // Solo Admin (esStaff) puede eliminar — Operador puede leer, crear y
   // editar (permissions.EsOperador en el backend rechaza su DELETE con
   // 403), así que ni le mostramos el botón: se entera de la restricción
@@ -225,48 +246,62 @@ export function AdminCrudPage({ title, endpoint, columns, FormComponent, itemLab
 
       {!isLoading && !error && rows.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((col) => (
-                    <TableHead key={col.key} className="whitespace-nowrap">
-                      {col.label}
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row, i) => (
-                  <TableRow key={(row.id as string) ?? i}>
+          {renderCard ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {rows.map((row, i) => (
+                <div key={(row.id as string) ?? i}>
+                  {renderCard(row, {
+                    onEdit: () => openEdit(row),
+                    onDelete: () => setRowToDelete(row),
+                    canDelete: puedeEliminar,
+                  })}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     {columns.map((col) => (
-                      <TableCell key={col.key} className="max-w-[220px] truncate">
-                        {col.render ? col.render(row) : defaultCell(row[col.key])}
-                      </TableCell>
+                      <TableHead key={col.key} className="whitespace-nowrap">
+                        {col.label}
+                      </TableHead>
                     ))}
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {puedeEliminar && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setRowToDelete(row)}
-                            aria-label="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row, i) => (
+                    <TableRow key={(row.id as string) ?? i}>
+                      {columns.map((col) => (
+                        <TableCell key={col.key} className="max-w-[220px] truncate">
+                          {col.render ? col.render(row) : defaultCell(row[col.key])}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          {puedeEliminar && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setRowToDelete(row)}
+                              aria-label="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

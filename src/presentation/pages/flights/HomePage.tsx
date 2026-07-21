@@ -29,6 +29,11 @@ import { Card } from '@/presentation/components/ui/card'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
 import { formatPrice } from '@/presentation/utils/formatters'
+import { fetchExchangeRates, formatLocalAmount } from '@/presentation/utils/currency'
+import quitoImage from '@/assets/destinations/Quito.webp'
+import guayaquilImage from '@/assets/destinations/Guayaquil.webp'
+import bogotaImage from '@/assets/destinations/Bogota.webp'
+import limaImage from '@/assets/destinations/Lima.webp'
 
 type TripType = 'ida-vuelta' | 'solo-ida'
 
@@ -348,6 +353,9 @@ const DESTINATION_GRADIENTS = [
   'from-fuchsia-600/60 to-neutral-900',
 ]
 
+// Fotos de respaldo por ciudad (subidas al repo), para cuando el aeropuerto
+// todavía no tiene una foto real cargada desde /admin/aeropuertos. Si el
+// admin sube una foto real, esa tiene prioridad (ver imageUrl más abajo).
 const DESTINATION_IMAGES: Record<string, string> = {
   UIO: quitoImage,
   GYE: guayaquilImage,
@@ -596,6 +604,15 @@ function DestinationOffersSection() {
                       : 'Inicia sesión para ver precios'
                 }
                 precio={deal.precio}
+                precioLocal={deal.precio != null && deal.pais ? formatLocalAmount(deal.precio, deal.pais, rates) : null}
+                imageUrl={deal.fotoUrl ?? DESTINATION_IMAGES[deal.codigo] ?? null}
+                badge={
+                  deal.pais && origenActual?.pais
+                    ? deal.pais === origenActual.pais
+                      ? 'Nacional'
+                      : 'Internacional'
+                    : null
+                }
                 gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
               />
             ))}
