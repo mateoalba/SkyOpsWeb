@@ -29,6 +29,10 @@ import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { FlightCard } from '@/presentation/components/flight-card'
 import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
 import { formatPrice } from '@/presentation/utils/formatters'
+import quitoImage from '@/assets/destinations/Quito.webp'
+import guayaquilImage from '@/assets/destinations/Guayaquil.webp'
+import bogotaImage from '@/assets/destinations/Bogota.webp'
+import limaImage from '@/assets/destinations/Lima.webp'
 
 type TripType = 'ida-vuelta' | 'solo-ida'
 
@@ -316,6 +320,13 @@ const FALLBACK_GRADIENTS = [
   'from-fuchsia-500/40 to-neutral-800',
 ]
 
+const FALLBACK_IMAGES: Record<string, string> = {
+  UIO: quitoImage,
+  GYE: guayaquilImage,
+  BOG: bogotaImage,
+  LIM: limaImage,
+}
+
 /**
  * "Ofertas destacadas": combina las imágenes configurables de los banners
  * oferta_1/2/3 con los 3 vuelos más económicos de entre los próximos
@@ -417,7 +428,15 @@ function OffersSection() {
               className="group overflow-hidden rounded-2xl bg-neutral-900 text-white shadow-sm transition-transform hover:-translate-y-1"
             >
               <div className="relative h-40 w-full overflow-hidden">
-                <div className={`h-full w-full bg-gradient-to-br ${FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length]}`} />
+                {FALLBACK_IMAGES[destino.codigo] ? (
+                  <img
+                    src={FALLBACK_IMAGES[destino.codigo]}
+                    alt=""
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className={`h-full w-full bg-gradient-to-br ${FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length]}`} />
+                )}
               </div>
               <div className="p-4">
                 <p className="font-semibold">{destino.ciudad}</p>
