@@ -9,6 +9,10 @@ export interface UpdateBannerPayload {
   titulo?: string
   texto?: string
   imagenUrl?: string
+  /** Archivo local a subir (multipart). Tiene prioridad sobre `imagenUrl` si viene presente. */
+  imagenArchivo?: File
+  /** Si es true, elimina la imagen actual (tanto la subida como la de URL). */
+  quitarImagen?: boolean
 }
 
 export interface BannerRepository {

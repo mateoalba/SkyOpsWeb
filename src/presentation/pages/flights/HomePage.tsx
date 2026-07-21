@@ -19,7 +19,9 @@ import {
 
 import { useAuthStore } from '@/presentation/store/auth.store'
 import { getFlightsUseCase } from '@/infrastructure/factories/flight.factory'
+import { listAirportsUseCase } from '@/infrastructure/factories/airport.factory'
 import type { Flight } from '@/domain/entities/flight.entity'
+import type { Airport } from '@/domain/entities/airport.entity'
 import type { PromoBanner } from '@/domain/entities/promo-banner.entity'
 import { getBannerUseCase } from '@/infrastructure/factories/banner.factory'
 import { Button } from '@/presentation/components/ui/button'
@@ -27,6 +29,7 @@ import { Card } from '@/presentation/components/ui/card'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
 import { formatPrice } from '@/presentation/utils/formatters'
+import { fetchExchangeRates, formatLocalAmount } from '@/presentation/utils/currency'
 
 type TripType = 'ida-vuelta' | 'solo-ida'
 
@@ -105,20 +108,20 @@ function SearchPanel() {
   }
 
   return (
-    <section className="bg-neutral-950 px-4 pb-16 pt-10 sm:px-6">
-      <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-3 text-center text-white">
+    <section className="px-4 pb-8 pt-10 sm:px-6">
+      <div className="relative mx-auto flex max-w-[1280px] flex-col items-center gap-3 text-center text-white">
         <PlaneTakeoff className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">Control total en cada despegue</h1>
-        <p className="max-w-xl text-balance text-sm text-white/70 sm:text-base">
-          Monitoreo de precisión para la aviación moderna: horarios, estados y rutas en tiempo real.
+        <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">Tu próximo viaje empieza aqui</h1>
+        <p className="max-w-2xl text-sm text-white/70 sm:whitespace-nowrap sm:text-base">
+          Busca, compara y reserva vuelos fácilmente, con información real y actualizada al minuto.
         </p>
       </div>
 
       <form
         onSubmit={handleSearch}
-        className="relative mx-auto mt-8 w-full max-w-[1280px] rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-2xl sm:p-10"
+        className="relative mx-auto mt-8 w-full max-w-[1280px] rounded-2xl border border-white/10 bg-neutral-900 p-4 shadow-2xl sm:p-6"
       >
-        <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded-full bg-white/10 p-1.5">
             <button
               type="button"
@@ -145,8 +148,8 @@ function SearchPanel() {
         <div className="flex flex-1 flex-col items-stretch gap-4 lg:flex-row">
           {/* Origen / Destino combinados en una sola cápsula, con el botón
               de intercambio superpuesto sobre el divisor central. */}
-          <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-20">
-            <div className="flex flex-1 items-center gap-3 px-5 py-4">
+          <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-16">
+            <div className="flex flex-1 items-center gap-3 px-4 py-3">
               <PlaneTakeoff className="h-6 w-6 shrink-0 text-primary" />
               <div className="flex-1 text-left">
                 <label className="block text-sm font-semibold uppercase tracking-wide text-white/60">Origen</label>
@@ -171,7 +174,7 @@ function SearchPanel() {
               <ArrowLeftRight className="h-4 w-4" />
             </button>
 
-            <div className="flex flex-1 items-center gap-3 px-5 py-4">
+            <div className="flex flex-1 items-center gap-3 px-4 py-3">
               <PlaneLanding className="h-6 w-6 shrink-0 text-primary" />
               <div className="flex-1 text-left">
                 <label className="block text-sm font-semibold uppercase tracking-wide text-white/60">Destino</label>
@@ -187,11 +190,11 @@ function SearchPanel() {
 
           {/* Salida / Regreso combinados en la misma cápsula; ambos botones
               abren el mismo calendario de dos meses. */}
-          <div className="flex flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-20 lg:w-auto">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-16 lg:w-auto">
             <button
               type="button"
               onClick={() => setDatePickerOpen(true)}
-              className="flex flex-1 items-center gap-3 px-5 py-4 text-left lg:min-w-[180px]"
+              className="flex flex-1 items-center gap-3 px-4 py-3 text-left lg:min-w-[180px]"
             >
               <CalendarDays className="h-6 w-6 shrink-0 text-primary" />
               <div className="flex-1">
@@ -209,7 +212,7 @@ function SearchPanel() {
                 <button
                   type="button"
                   onClick={() => setDatePickerOpen(true)}
-                  className="flex flex-1 items-center gap-3 px-5 py-4 text-left lg:min-w-[180px]"
+                  className="flex flex-1 items-center gap-3 px-4 py-3 text-left lg:min-w-[180px]"
                 >
                   <CalendarDays className="h-6 w-6 shrink-0 text-primary" />
                   <div className="flex-1">
@@ -226,7 +229,7 @@ function SearchPanel() {
           <Button
             type="submit"
             size="lg"
-            className="h-auto w-full rounded-xl py-4 text-2xl font-bold text-white lg:h-20 lg:w-auto lg:px-12 lg:text-3xl"
+            className="h-auto w-full rounded-xl py-3 text-2xl font-bold text-white lg:h-16 lg:w-auto lg:px-12 lg:text-3xl"
           >
             Buscar
           </Button>
@@ -250,6 +253,42 @@ function SearchPanel() {
 }
 
 /**
+ * Envuelve SearchPanel + PromoCard bajo una sola imagen de fondo (banner
+ * "home_hero"), para que la foto se vea detrás de ambas tarjetas y no solo
+ * detrás del buscador. El degradado se apaga justo al final (hacia
+ * neutral-950 sólido) para mezclarse con el fondo de la sección siguiente
+ * ("Ofertas desde..."). Ninguna de las dos tarjetas hijas tiene ya su
+ * propio fondo/imagen de sección — viven "encima" de esta capa compartida.
+ */
+function HeroSection() {
+  const [banner, setBanner] = useState<PromoBanner | null>(null)
+
+  useEffect(() => {
+    getBannerUseCase.execute('home_hero').then(setBanner).catch(() => setBanner(null))
+  }, [])
+
+  return (
+    <div className="relative overflow-hidden bg-neutral-950">
+      {banner?.imagenUrl && (
+        <>
+          <img
+            src={banner.imagenUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setBanner(null)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/75 via-neutral-950/85 to-neutral-950" />
+        </>
+      )}
+      <div className="relative pb-20">
+        <SearchPanel />
+        <PromoCard />
+      </div>
+    </div>
+  )
+}
+
+/**
  * Tarjeta promocional grande (imagen + texto), reutiliza el mismo banner
  * "dashboard" configurable desde el admin que antes usaba el hero con foto.
  * bg-neutral-800 (en vez de neutral-900) + borde para que se distinga del
@@ -267,47 +306,41 @@ function PromoCard() {
 
   return (
     <section className="px-4 sm:px-6">
-      <div className="mx-auto -mt-8 w-full max-w-[1280px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-800">
-        <div className="grid grid-cols-1 sm:grid-cols-2 sm:min-h-[420px]">
-          <div className="flex flex-col justify-center gap-4 p-8 sm:p-10">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              {banner?.titulo || 'Cada vuelo, bajo control'}
-            </h2>
-            <p className="text-sm text-white/70 sm:text-base">
-              {banner?.texto ||
-                'Desde el despegue hasta el aterrizaje, sigue cada operación de la flota en tiempo real.'}
-            </p>
-            <Button asChild size="lg" className="w-fit rounded-full">
-              <Link to="/flights">Ver vuelos</Link>
-            </Button>
-          </div>
-          <div className="relative min-h-[280px] sm:min-h-0">
-            {hasImage ? (
-              <img
-                src={banner!.imagenUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                onError={() => setBanner(null)}
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-neutral-700 to-neutral-900" />
-            )}
-          </div>
+      <div className="relative mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl border border-white/10">
+        {hasImage ? (
+          <img
+            src={banner!.imagenUrl}
+            alt=""
+            className="h-56 w-full object-cover sm:h-80"
+            onError={() => setBanner(null)}
+          />
+        ) : (
+          <div className="h-56 w-full bg-gradient-to-br from-primary/40 via-neutral-700 to-neutral-900 sm:h-80" />
+        )}
+
+        {/* Sub-tarjeta translúcida encima de la foto, estilo Avianca: el
+            título y la descripción siguen siendo el mismo banner "dashboard"
+            configurable desde /admin/banners, solo cambió cómo se presentan. */}
+        <div className="absolute inset-x-4 bottom-4 top-auto flex flex-col justify-center gap-3 rounded-2xl bg-black/55 p-6 backdrop-blur-md sm:inset-x-auto sm:inset-y-6 sm:left-6 sm:w-1/2 sm:p-8">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            {banner?.titulo || 'Cada vuelo, bajo control'}
+          </h2>
+          <p className="text-base text-white/80 sm:text-lg">
+            {banner?.texto ||
+              'Desde el despegue hasta el aterrizaje, sigue cada operación de la flota en tiempo real.'}
+          </p>
+          <Button
+            asChild
+            size="lg"
+            className="ml-auto mt-auto w-fit rounded-full bg-black px-10 py-7 text-lg text-white hover:bg-black/80"
+          >
+            <Link to="/flights">Ver vuelos</Link>
+          </Button>
         </div>
       </div>
     </section>
   )
 }
-
-// Aeropuertos reales sembrados en el backend (ver seed_data.py). Se usan
-// como opciones del selector "Ofertas desde [Ciudad]" y como vitrina de
-// destinos cuando todavía no hay datos de precio real disponibles.
-const REAL_AIRPORTS = [
-  { codigo: 'UIO', ciudad: 'Quito', pais: 'Ecuador' },
-  { codigo: 'GYE', ciudad: 'Guayaquil', pais: 'Ecuador' },
-  { codigo: 'BOG', ciudad: 'Bogotá', pais: 'Colombia' },
-  { codigo: 'LIM', ciudad: 'Lima', pais: 'Perú' },
-]
 
 const DESTINATION_GRADIENTS = [
   'from-primary/60 to-neutral-900',
@@ -322,12 +355,20 @@ const DESTINATION_GRADIENTS = [
  * oscuro, en vez de vivir en una barra sólida separada debajo de la foto.
  * Se reutiliza tanto en "Ofertas desde [Ciudad]" como en "Ofertas
  * destacadas" para que ambas secciones compartan el mismo lenguaje visual.
+ *
+ * El badge de la esquina superior (Nacional/Internacional) sale de comparar
+ * el país real del aeropuerto de origen y destino (tabla Aeropuertos), y el
+ * precio en moneda local (segunda línea, más chica) se calcula con una tasa
+ * de cambio en vivo — si esa tasa no está disponible (ver `currency.ts`),
+ * simplemente no se muestra la segunda línea, nunca se inventa un valor.
  */
 function DestinationCard({
   to,
   ciudad,
   caption,
   precio,
+  precioLocal,
+  badge,
   imageUrl,
   gradient,
 }: {
@@ -335,6 +376,8 @@ function DestinationCard({
   ciudad: string
   caption: string
   precio?: number | null
+  precioLocal?: string | null
+  badge?: string | null
   imageUrl?: string | null
   gradient: string
 }) {
@@ -353,12 +396,24 @@ function DestinationCard({
         <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${gradient}`} />
       )}
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+
+      {badge && (
+        <span className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+          {badge}
+        </span>
+      )}
+
       <div className="relative flex items-end justify-between gap-3 p-5">
         <div>
           <p className="text-lg font-semibold">{ciudad}</p>
           <p className="text-xs text-white/70">{caption}</p>
         </div>
-        {precio != null && <p className="text-lg font-bold text-primary">{formatPrice(precio)}</p>}
+        {precio != null && (
+          <div className="text-right">
+            <p className="text-lg font-bold text-primary">{precioLocal ?? formatPrice(precio)}</p>
+            {precioLocal && <p className="text-xs text-white/60">{formatPrice(precio)}</p>}
+          </div>
+        )}
       </div>
     </Link>
   )
@@ -367,33 +422,55 @@ function DestinationCard({
 interface DestinationDeal {
   codigo: string
   ciudad: string
+  pais: string
   precio: number | null
+  fotoUrl: string | null
 }
 
 /**
- * "Ofertas desde [Ciudad]": selector de aeropuerto de origen (los 4 reales
- * sembrados en el backend) + hasta 3 tarjetas con el destino y el precio
- * más barato real entre los próximos vuelos de esa ruta (se trae un lote
- * con origenCodigo y se calcula el mínimo por destino en el cliente, igual
- * que en OffersSection, porque la API no soporta ordenar por precio).
+ * "Ofertas desde [Ciudad]": selector de aeropuerto de origen + hasta 3
+ * tarjetas con el destino y el precio más barato real entre los próximos
+ * vuelos de esa ruta (se trae un lote con origenCodigo y se calcula el
+ * mínimo por destino en el cliente, porque la API no soporta ordenar por
+ * precio).
  *
- * A diferencia del diseño de Avianca en el que se basa esta sección, no
- * se muestra el badge "Acumula millas" ni un segundo precio en USD: SkyOps
- * no tiene programa de millas ni conversión de moneda en el backend, y
- * agregar esos datos sería inventarlos.
+ * Tanto el selector como las tarjetas se conectan con la tabla real de
+ * Aeropuertos (GET /aeropuertos/, pública) en vez de una lista fija en el
+ * frontend — así cualquier aeropuerto que un admin agregue desde el panel
+ * aparece automáticamente aquí. De cada aeropuerto solo se muestra la
+ * ciudad (igual que antes); el país real se usa para el badge
+ * Nacional/Internacional y para elegir la moneda local del precio, pero
+ * nunca se expone el nombre completo del aeropuerto.
  */
 function DestinationOffersSection() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const [origenCodigo, setOrigenCodigo] = useState(REAL_AIRPORTS[2].codigo) // BOG por defecto
+  const [airports, setAirports] = useState<Airport[]>([])
+  const [origenCodigo, setOrigenCodigo] = useState<string | null>(null)
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [deals, setDeals] = useState<DestinationDeal[]>([])
   const [hasRealPrices, setHasRealPrices] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [rates, setRates] = useState<Record<string, number>>({})
 
-  const origenActual = REAL_AIRPORTS.find((a) => a.codigo === origenCodigo) ?? REAL_AIRPORTS[2]
-  const otrosDestinos = REAL_AIRPORTS.filter((a) => a.codigo !== origenCodigo)
+  // Catálogo real de aeropuertos (una sola vez) + tasas de cambio en vivo
+  // (una sola vez, cacheadas a nivel de módulo en currency.ts).
+  useEffect(() => {
+    listAirportsUseCase
+      .execute()
+      .then((result) => {
+        setAirports(result)
+        setOrigenCodigo((prev) => prev ?? result.find((a) => a.codigoIata === 'BOG')?.codigoIata ?? result[0]?.codigoIata ?? null)
+      })
+      .catch(() => setAirports([]))
+
+    fetchExchangeRates().then(setRates)
+  }, [])
+
+  const origenActual = airports.find((a) => a.codigoIata === origenCodigo) ?? null
+  const otrosDestinos = airports.filter((a) => a.codigoIata !== origenCodigo)
 
   useEffect(() => {
+    if (!origenCodigo) return
     let active = true
     setLoading(true)
 
@@ -414,20 +491,37 @@ function DestinationOffersSection() {
         const real = Array.from(cheapestByDestino.values())
           .sort((a, b) => a.precioBase - b.precioBase)
           .slice(0, 3)
-          .map((flight) => ({ codigo: flight.destinoCodigo, ciudad: flight.destinoCiudad, precio: flight.precioBase }))
+          .map((flight) => {
+            const aeropuerto = airports.find((a) => a.codigoIata === flight.destinoCodigo)
+            return {
+              codigo: flight.destinoCodigo,
+              ciudad: flight.destinoCiudad,
+              pais: aeropuerto?.pais ?? '',
+              precio: flight.precioBase,
+              fotoUrl: aeropuerto?.fotoUrl ?? null,
+            }
+          })
 
         if (real.length > 0) {
           setDeals(real)
           setHasRealPrices(true)
         } else {
-          setDeals(otrosDestinos.slice(0, 3).map((d) => ({ codigo: d.codigo, ciudad: d.ciudad, precio: null })))
+          setDeals(
+            otrosDestinos
+              .slice(0, 3)
+              .map((d) => ({ codigo: d.codigoIata, ciudad: d.ciudad, pais: d.pais, precio: null, fotoUrl: d.fotoUrl })),
+          )
           setHasRealPrices(false)
         }
         setLoading(false)
       })
       .catch(() => {
         if (!active) return
-        setDeals(otrosDestinos.slice(0, 3).map((d) => ({ codigo: d.codigo, ciudad: d.ciudad, precio: null })))
+        setDeals(
+          otrosDestinos
+            .slice(0, 3)
+            .map((d) => ({ codigo: d.codigoIata, ciudad: d.ciudad, pais: d.pais, precio: null, fotoUrl: d.fotoUrl })),
+        )
         setHasRealPrices(false)
         setLoading(false)
       })
@@ -436,10 +530,12 @@ function DestinationOffersSection() {
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origenCodigo])
+  }, [origenCodigo, airports])
+
+  if (!loading && airports.length === 0) return null
 
   return (
-    <section className="px-4 py-16 sm:px-6">
+    <section className="px-4 pb-16 pt-8 sm:px-6">
       <div className="mx-auto w-full max-w-[1280px]">
         <div className="relative mb-8 flex justify-center">
           <button
@@ -447,26 +543,26 @@ function DestinationOffersSection() {
             onClick={() => setSelectorOpen((v) => !v)}
             className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight"
           >
-            Ofertas desde <span className="text-primary">{origenActual.ciudad}</span>
+            Ofertas desde <span className="text-primary">{origenActual?.ciudad ?? '...'}</span>
             <ChevronDown className={`h-5 w-5 text-primary transition-transform ${selectorOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {selectorOpen && (
             <div className="absolute top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border bg-popover shadow-lg">
-              {REAL_AIRPORTS.map((airport) => (
+              {airports.map((airport) => (
                 <button
-                  key={airport.codigo}
+                  key={airport.codigoIata}
                   type="button"
                   onClick={() => {
-                    setOrigenCodigo(airport.codigo)
+                    setOrigenCodigo(airport.codigoIata)
                     setSelectorOpen(false)
                   }}
                   className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted ${
-                    airport.codigo === origenCodigo ? 'font-semibold text-primary' : ''
+                    airport.codigoIata === origenCodigo ? 'font-semibold text-primary' : ''
                   }`}
                 >
                   {airport.ciudad}
-                  <span className="text-xs text-muted-foreground">{airport.codigo}</span>
+                  <span className="text-xs text-muted-foreground">{airport.codigoIata}</span>
                 </button>
               ))}
             </div>
@@ -494,6 +590,15 @@ function DestinationOffersSection() {
                       : 'Inicia sesión para ver precios'
                 }
                 precio={deal.precio}
+                precioLocal={deal.precio != null && deal.pais ? formatLocalAmount(deal.precio, deal.pais, rates) : null}
+                imageUrl={deal.fotoUrl}
+                badge={
+                  deal.pais && origenActual?.pais
+                    ? deal.pais === origenActual.pais
+                      ? 'Nacional'
+                      : 'Internacional'
+                    : null
+                }
                 gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
               />
             ))}
@@ -619,8 +724,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       <TopInfoBar />
-      <SearchPanel />
-      <PromoCard />
+      <HeroSection />
       <DestinationOffersSection />
       <FeaturesSection />
       <AudienceSection />

@@ -1,5 +1,5 @@
 // src/presentation/pages/admin/BannersPage.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,14 +17,20 @@ import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/presentation/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/presentation/components/ui/form'
 
-// Claves conocidas que usa la app (Flutter + Web) para mostrar banners en
-// distintas secciones. El backend crea la fila automáticamente (get_or_create)
-// la primera vez que un admin guarda algo, así que puede que todavía no
-// exista — en ese caso se muestra la tarjeta vacía, lista para completar.
-const CLAVES_CONOCIDAS = [
+// Claves conocidas de banners, separadas por plataforma para no confundirlas:
+// el backend es el mismo para ambas (misma tabla /banners/), pero cada clave
+// solo la consume o el sitio web o la app móvil (Flutter) de tu compañera,
+// nunca las dos. El backend crea la fila automáticamente (get_or_create) la
+// primera vez que un admin guarda algo, así que puede que todavía no exista
+// — en ese caso se muestra la tarjeta vacía, lista para completar.
+const CLAVES_WEB = [
   { clave: 'dashboard', label: 'Dashboard / Home' },
+  { clave: 'home_hero', label: 'Hero de inicio (buscador)' },
   { clave: 'vuelos', label: 'Listado de vuelos' },
   { clave: 'login_hero', label: 'Encabezado de login' },
+]
+
+const CLAVES_MOVIL = [
   { clave: 'oferta_1', label: 'Oferta destacada 1' },
   { clave: 'oferta_2', label: 'Oferta destacada 2' },
   { clave: 'oferta_3', label: 'Oferta destacada 3' },
@@ -34,6 +40,39 @@ const CLAVES_CONOCIDAS = [
   { clave: 'carrusel_personas', label: 'Carrusel — Personas' },
   { clave: 'carrusel_administracion', label: 'Carrusel — Administración' },
 ]
+
+function BannerCard({
+  label,
+  banner,
+  onEdit,
+}: {
+  clave: string
+  label: string
+  banner: PromoBanner | undefined
+  onEdit: () => void
+}) {
+  return (
+    <Card className="overflow-hidden">
+      {banner?.imagenUrl ? (
+        <img src={banner.imagenUrl} alt={label} className="h-32 w-full object-cover" />
+      ) : (
+        <div className="flex h-32 w-full items-center justify-center bg-muted">
+          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+        </div>
+      )}
+      <CardContent className="flex items-start justify-between gap-3 pt-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+          <p className="truncate font-medium">{banner?.titulo || 'Sin título'}</p>
+          <p className="line-clamp-2 text-sm text-muted-foreground">{banner?.texto || 'Sin texto configurado.'}</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Editar">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 const schema = z.object({
   titulo: z.string().optional(),
@@ -45,27 +84,41 @@ type FormValues = z.infer<typeof schema>
 
 function BannerForm({
   initialValues,
+  currentImageUrl,
   onSubmit,
   onCancel,
   isSaving,
   error,
 }: {
   initialValues: FormValues
-  onSubmit: (values: FormValues) => void
+  currentImageUrl: string
+  onSubmit: (values: FormValues, imagenArchivo: File | null) => void
   onCancel: () => void
   isSaving: boolean
   error: string | null
 }) {
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: initialValues })
+  const [imagenArchivo, setImagenArchivo] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     form.reset(initialValues)
+    setImagenArchivo(null)
+    setPreviewUrl(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues])
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setImagenArchivo(file)
+    setPreviewUrl(file ? URL.createObjectURL(file) : null)
+  }
+
+  const displayedImage = previewUrl || (imagenArchivo ? null : currentImageUrl)
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit((values) => onSubmit(values, imagenArchivo))} className="space-y-4">
         <FormField
           control={form.control}
           name="titulo"
@@ -92,14 +145,26 @@ function BannerForm({
             </FormItem>
           )}
         />
+
+        <div className="space-y-2">
+          <FormLabel>Imagen</FormLabel>
+          {displayedImage && (
+            <img src={displayedImage} alt="" className="h-32 w-full rounded-md object-cover" />
+          )}
+          <Input type="file" accept="image/*" onChange={handleFileChange} />
+          <p className="text-xs text-muted-foreground">
+            Sube una imagen desde tu ordenador, o pega un enlace abajo si prefieres usar una URL existente.
+          </p>
+        </div>
+
         <FormField
           control={form.control}
           name="imagenUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL de imagen</FormLabel>
+              <FormLabel>URL de imagen (opcional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://..." {...field} />
+                <Input placeholder="https://..." {...field} disabled={Boolean(imagenArchivo)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -157,12 +222,15 @@ export default function BannersPage() {
     imagenUrl: currentBanner?.imagenUrl ?? '',
   }
 
-  const handleSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues, imagenArchivo: File | null) => {
     if (!editingClave) return
     setIsSaving(true)
     setFormError(null)
     try {
-      const updated = await updateBannerUseCase.execute(editingClave, values)
+      const updated = await updateBannerUseCase.execute(editingClave, {
+        ...values,
+        imagenArchivo: imagenArchivo ?? undefined,
+      })
       setBanners((prev) => ({ ...prev, [editingClave]: updated }))
       setEditingClave(null)
     } catch (err) {
@@ -211,31 +279,38 @@ export default function BannersPage() {
       )}
 
       {!isLoading && !error && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {CLAVES_CONOCIDAS.map(({ clave, label }) => {
-            const banner = banners[clave]
-            return (
-              <Card key={clave} className="overflow-hidden">
-                {banner?.imagenUrl ? (
-                  <img src={banner.imagenUrl} alt={label} className="h-32 w-full object-cover" />
-                ) : (
-                  <div className="flex h-32 w-full items-center justify-center bg-muted">
-                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
-                <CardContent className="flex items-start justify-between gap-3 pt-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
-                    <p className="truncate font-medium">{banner?.titulo || 'Sin título'}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{banner?.texto || 'Sin texto configurado.'}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setEditingClave(clave)} aria-label="Editar">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )
-          })}
+        <div className="space-y-8">
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sitio web</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {CLAVES_WEB.map(({ clave, label }) => (
+                <BannerCard
+                  key={clave}
+                  clave={clave}
+                  label={label}
+                  banner={banners[clave]}
+                  onEdit={() => setEditingClave(clave)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              App móvil (Flutter)
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {CLAVES_MOVIL.map(({ clave, label }) => (
+                <BannerCard
+                  key={clave}
+                  clave={clave}
+                  label={label}
+                  banner={banners[clave]}
+                  onEdit={() => setEditingClave(clave)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -243,11 +318,13 @@ export default function BannersPage() {
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              Editar banner — {CLAVES_CONOCIDAS.find((c) => c.clave === editingClave)?.label ?? editingClave}
+              Editar banner —{' '}
+              {[...CLAVES_WEB, ...CLAVES_MOVIL].find((c) => c.clave === editingClave)?.label ?? editingClave}
             </DialogTitle>
           </DialogHeader>
           <BannerForm
             initialValues={initialFormValues}
+            currentImageUrl={currentBanner?.imagenUrl ?? ''}
             onSubmit={handleSubmit}
             onCancel={() => setEditingClave(null)}
             isSaving={isSaving}

@@ -57,10 +57,22 @@ export class BannerRepositoryAxiosAdapter implements BannerRepository {
 
   async updateBanner(clave: string, payload: UpdateBannerPayload): Promise<PromoBanner> {
     try {
+      if (payload.imagenArchivo) {
+        const formData = new FormData()
+        if (payload.titulo !== undefined) formData.append('titulo', payload.titulo)
+        if (payload.texto !== undefined) formData.append('texto', payload.texto)
+        formData.append('imagen_upload', payload.imagenArchivo)
+        const { data } = await this.http.put<RawBanner>(`/banners/${clave}/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return toPromoBanner(data)
+      }
+
       const { data } = await this.http.put<RawBanner>(`/banners/${clave}/`, {
         titulo: payload.titulo,
         texto: payload.texto,
         imagen_url: payload.imagenUrl,
+        quitar_imagen: payload.quitarImagen ?? false,
       })
       return toPromoBanner(data)
     } catch (error) {

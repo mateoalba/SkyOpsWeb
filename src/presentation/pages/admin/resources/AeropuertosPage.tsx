@@ -1,5 +1,5 @@
 // src/presentation/pages/admin/resources/AeropuertosPage.tsx
-import { useEffect } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -52,11 +52,22 @@ function AeropuertoForm({ initialValues, onSubmit, onCancel, isSaving, error }: 
     resolver: zodResolver(schema),
     defaultValues: initialValues ? rowToForm(initialValues) : EMPTY,
   })
+  const [foto, setFoto] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const fotoActual = String(initialValues?.foto_resuelta ?? initialValues?.foto_url ?? '')
 
   useEffect(() => {
     form.reset(initialValues ? rowToForm(initialValues) : EMPTY)
+    setFoto(null)
+    setPreview(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues])
+
+  const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setFoto(file)
+    setPreview(file ? URL.createObjectURL(file) : null)
+  }
 
   const handleSubmit = (values: FormValues) =>
     onSubmit({
@@ -68,6 +79,7 @@ function AeropuertoForm({ initialValues, onSubmit, onCancel, isSaving, error }: 
       longitud: values.longitud ? Number(values.longitud) : null,
       zona_horaria: values.zonaHoraria,
       foto_url: values.fotoUrl,
+      ...(foto ? { foto } : {}),
     })
 
   return (
@@ -170,6 +182,17 @@ function AeropuertoForm({ initialValues, onSubmit, onCancel, isSaving, error }: 
             </FormItem>
           )}
         />
+        <div className="space-y-2">
+          <FormLabel>Foto</FormLabel>
+          {(preview || fotoActual) && (
+            <img src={preview || fotoActual} alt="" className="h-32 w-full rounded-md object-cover" />
+          )}
+          <Input type="file" accept="image/*" onChange={handleFotoChange} />
+          <p className="text-xs text-muted-foreground">
+            Sube una imagen desde tu ordenador, o pega un enlace abajo si prefieres usar una URL existente.
+          </p>
+        </div>
+
         <FormField
           control={form.control}
           name="fotoUrl"
@@ -177,7 +200,7 @@ function AeropuertoForm({ initialValues, onSubmit, onCancel, isSaving, error }: 
             <FormItem>
               <FormLabel>URL de foto (opcional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://..." {...field} />
+                <Input placeholder="https://..." {...field} disabled={Boolean(foto)} />
               </FormControl>
               <FormMessage />
             </FormItem>
