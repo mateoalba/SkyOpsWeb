@@ -1,6 +1,6 @@
 // src/presentation/components/flight-card.tsx
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Clock, PlaneTakeoff, Ticket } from 'lucide-react'
 
 import type { Flight } from '@/domain/entities/flight.entity'
@@ -10,6 +10,7 @@ import { Badge } from '@/presentation/components/ui/badge'
 import { formatFlightDateTime, formatPrice } from '@/presentation/utils/formatters'
 import { FLIGHT_STATUS_VARIANT } from '@/presentation/utils/flight-status-variant'
 import { BookFlightDialog } from '@/presentation/components/book-flight-dialog'
+import { LoginRequiredDialog } from '@/presentation/components/login-required-dialog'
 
 interface FlightCardProps {
   flight: Flight
@@ -25,13 +26,13 @@ interface FlightCardProps {
  * hover, se queda siempre visible.
  */
 export function FlightCard({ flight }: FlightCardProps) {
-  const navigate = useNavigate()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [loginRequiredOpen, setLoginRequiredOpen] = useState(false)
 
   const handleReservar = () => {
     if (!isAuthenticated) {
-      navigate('/login')
+      setLoginRequiredOpen(true)
       return
     }
     setBookingOpen(true)
@@ -89,6 +90,11 @@ export function FlightCard({ flight }: FlightCardProps) {
       </div>
 
       <BookFlightDialog flight={flight} open={bookingOpen} onOpenChange={setBookingOpen} />
+      <LoginRequiredDialog
+        open={loginRequiredOpen}
+        onOpenChange={setLoginRequiredOpen}
+        message="Necesitas una cuenta para reservar este vuelo."
+      />
     </Card>
   )
 }

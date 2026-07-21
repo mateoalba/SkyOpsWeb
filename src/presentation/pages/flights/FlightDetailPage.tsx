@@ -1,6 +1,6 @@
 // src/presentation/pages/flights/FlightDetailPage.tsx
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   PlaneTakeoff,
@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader } from '@/presentation/components/ui/card
 import { Badge } from '@/presentation/components/ui/badge'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { BookFlightDialog } from '@/presentation/components/book-flight-dialog'
+import { LoginRequiredDialog } from '@/presentation/components/login-required-dialog'
 import { FLIGHT_STATUS_VARIANT } from '@/presentation/utils/flight-status-variant'
 import { formatFlightDateTime, formatDuration, formatPrice } from '@/presentation/utils/formatters'
 
@@ -121,13 +122,13 @@ function DetailItem({ icon: Icon, label, value }: { icon: LucideIcon; label: str
  */
 export default function FlightDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
   const [flight, setFlight] = useState<Flight | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<ApiException | null>(null)
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [loginRequiredOpen, setLoginRequiredOpen] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -156,7 +157,7 @@ export default function FlightDetailPage() {
 
   const handleReservar = () => {
     if (!isAuthenticated) {
-      navigate('/login')
+      setLoginRequiredOpen(true)
       return
     }
     setBookingOpen(true)
@@ -277,6 +278,12 @@ export default function FlightDetailPage() {
           <BookFlightDialog flight={flight} open={bookingOpen} onOpenChange={setBookingOpen} />
         </>
       )}
+
+      <LoginRequiredDialog
+        open={loginRequiredOpen}
+        onOpenChange={setLoginRequiredOpen}
+        message="Necesitas una cuenta para reservar este vuelo."
+      />
     </section>
   )
 }

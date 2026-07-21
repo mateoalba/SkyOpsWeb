@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/presentation/components/ui/alert-dialog'
 import { Pagination } from '@/presentation/components/pagination'
+import { cn } from '@/presentation/utils/cn'
 
 export interface AdminColumn {
   key: string
@@ -71,6 +72,8 @@ interface AdminCrudPageProps {
    * para nada visual, pero se sigue pidiendo por consistencia del tipo).
    */
   renderCard?: (row: AdminRecord, actions: AdminCardActions) => ReactNode
+  /** Ancho del modal de crear/editar. Por defecto `sm:max-w-lg`; los formularios más anchos (con panel de foto) pueden pasar algo como `sm:max-w-3xl`. */
+  dialogClassName?: string
 }
 
 function defaultCell(value: unknown): ReactNode {
@@ -87,6 +90,7 @@ export function AdminCrudPage({
   FormComponent,
   itemLabel = 'registros',
   renderCard,
+  dialogClassName,
 }: AdminCrudPageProps) {
   // Solo Admin (esStaff) puede eliminar — Operador puede leer, crear y
   // editar (permissions.EsOperador en el backend rechaza su DELETE con
@@ -313,7 +317,7 @@ export function AdminCrudPage({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className={cn('max-h-[85vh] overflow-y-auto', dialogClassName ?? 'sm:max-w-lg')}>
           <DialogHeader>
             <DialogTitle>{editingRow ? `Editar ${title.toLowerCase()}` : `Nuevo registro — ${title}`}</DialogTitle>
           </DialogHeader>

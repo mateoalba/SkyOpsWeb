@@ -1,10 +1,13 @@
 // src/presentation/pages/auth/LoginPage.tsx
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PlaneTakeoff } from 'lucide-react'
 
+import type { PromoBanner } from '@/domain/entities/promo-banner.entity'
+import { getBannerUseCase } from '@/infrastructure/factories/banner.factory'
 import { useAuthStore } from '@/presentation/store/auth.store'
 import { Button } from '@/presentation/components/ui/button'
 import { Input } from '@/presentation/components/ui/input'
@@ -28,6 +31,11 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
+  const [banner, setBanner] = useState<PromoBanner | null>(null)
+
+  useEffect(() => {
+    getBannerUseCase.execute('login_hero').then(setBanner).catch(() => setBanner(null))
+  }, [])
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,8 +49,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+    <div className="relative isolate flex min-h-[70vh] items-center justify-center overflow-hidden p-4">
+      {banner?.imagenUrl && (
+        <>
+          <img
+            src={banner.imagenUrl}
+            alt=""
+            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            onError={() => setBanner(null)}
+          />
+          <div className="absolute inset-0 -z-10 bg-black/60" />
+        </>
+      )}
+
+      <Card className="w-full max-w-sm border-white/10 bg-card/70 backdrop-blur-xl">
         <CardHeader className="items-center text-center">
           <PlaneTakeoff className="mb-2 h-8 w-8" />
           <CardTitle>Iniciar sesión</CardTitle>

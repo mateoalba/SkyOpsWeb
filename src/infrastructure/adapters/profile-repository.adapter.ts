@@ -85,6 +85,17 @@ export class ProfileRepositoryAxiosAdapter implements ProfileRepository {
 
   async updateProfile(payload: UpdateProfileDto): Promise<UserProfile> {
     try {
+      if (payload.fotoArchivo) {
+        const formData = new FormData()
+        const raw = toRawPayload(payload)
+        Object.entries(raw).forEach(([key, value]) => formData.append(key, value))
+        formData.append('foto_upload', payload.fotoArchivo)
+        const { data } = await this.http.patch<RawUserProfile>('/auth/perfil/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return toUserProfile(data)
+      }
+
       const { data } = await this.http.patch<RawUserProfile>('/auth/perfil/', toRawPayload(payload))
       return toUserProfile(data)
     } catch (error) {

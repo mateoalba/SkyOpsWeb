@@ -13,4 +13,6 @@ export interface UpdateProfileDto {
   fechaNacimiento?: string
   genero?: Genero | ''
   telefono?: string
+  /** Nueva foto de perfil a subir (multipart). Si no se envía, la foto actual no cambia. */
+  fotoArchivo?: File | null
 }

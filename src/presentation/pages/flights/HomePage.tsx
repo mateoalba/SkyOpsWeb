@@ -1,48 +1,14 @@
 // src/presentation/pages/flights/HomePage.tsx
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  PlaneTakeoff,
-  PlaneLanding,
-  CalendarDays,
-  ArrowRight,
-  ArrowLeftRight,
-  ChevronDown,
-  LogIn,
-  Search,
-  Info,
-  X,
-  Ticket,
-  ShieldCheck,
-  LayoutDashboard,
-} from 'lucide-react'
+import { PlaneTakeoff, Search, Info, X, Ticket, ShieldCheck } from 'lucide-react'
 
 import { useAuthStore } from '@/presentation/store/auth.store'
-import { getFlightsUseCase } from '@/infrastructure/factories/flight.factory'
-import { listAirportsUseCase } from '@/infrastructure/factories/airport.factory'
-import type { Flight } from '@/domain/entities/flight.entity'
-import type { Airport } from '@/domain/entities/airport.entity'
 import type { PromoBanner } from '@/domain/entities/promo-banner.entity'
 import { getBannerUseCase } from '@/infrastructure/factories/banner.factory'
 import { Button } from '@/presentation/components/ui/button'
-import { Card } from '@/presentation/components/ui/card'
-import { Skeleton } from '@/presentation/components/ui/skeleton'
-import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
-import { formatPrice } from '@/presentation/utils/formatters'
-import { fetchExchangeRates, formatLocalAmount } from '@/presentation/utils/currency'
-import quitoImage from '@/assets/destinations/Quito.webp'
-import guayaquilImage from '@/assets/destinations/Guayaquil.webp'
-import bogotaImage from '@/assets/destinations/Bogota.webp'
-import limaImage from '@/assets/destinations/Lima.webp'
-
-type TripType = 'ida-vuelta' | 'solo-ida'
-
-function formatShortDate(iso: string): string {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date)
-}
+import { FlightSearchBar } from '@/presentation/components/flight-search-bar'
+import { DestinationOffersSection } from '@/presentation/components/destination-offers-section'
 
 /**
  * Barra superior oscura y descartable, tipo aviso de aerolínea
@@ -90,27 +56,6 @@ function TopInfoBar() {
  */
 function SearchPanel() {
   const navigate = useNavigate()
-  const [tripType, setTripType] = useState<TripType>('solo-ida')
-  const [origen, setOrigen] = useState('')
-  const [destino, setDestino] = useState('')
-  const [salida, setSalida] = useState('')
-  const [regreso, setRegreso] = useState('')
-  const [datePickerOpen, setDatePickerOpen] = useState(false)
-
-  const handleSearch = (event: FormEvent) => {
-    event.preventDefault()
-    const params = new URLSearchParams()
-    if (origen.trim()) params.set('origen', origen.trim().toUpperCase())
-    if (destino.trim()) params.set('destino', destino.trim().toUpperCase())
-    if (salida) params.set('fecha', salida)
-    navigate(`/flights${params.toString() ? `?${params.toString()}` : ''}`)
-  }
-
-  const handleSwap = () => {
-    setOrigen(destino)
-    setDestino(origen)
-  }
-
   return (
     <section className="px-4 pb-8 pt-10 sm:px-6">
       <div className="relative mx-auto flex max-w-[1280px] flex-col items-center gap-3 text-center text-white">
@@ -121,137 +66,16 @@ function SearchPanel() {
         </p>
       </div>
 
-      <form
-        onSubmit={handleSearch}
-        className="relative mx-auto mt-8 w-full max-w-[1280px] rounded-2xl border border-white/10 bg-neutral-900 p-4 shadow-2xl sm:p-6"
-      >
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-full bg-white/10 p-1.5">
-            <button
-              type="button"
-              onClick={() => setTripType('ida-vuelta')}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:text-base ${
-                tripType === 'ida-vuelta' ? 'bg-white text-neutral-900' : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Ida y vuelta
-            </button>
-            <button
-              type="button"
-              onClick={() => setTripType('solo-ida')}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:text-base ${
-                tripType === 'solo-ida' ? 'bg-white text-neutral-900' : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Solo ida
-            </button>
-          </div>
-          <p className="text-sm text-white/50">Consulta la disponibilidad real de nuestra flota</p>
-        </div>
-
-        <div className="flex flex-1 flex-col items-stretch gap-4 lg:flex-row">
-          {/* Origen / Destino combinados en una sola cápsula, con el botón
-              de intercambio superpuesto sobre el divisor central. */}
-          <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-16">
-            <div className="flex flex-1 items-center gap-3 px-4 py-3">
-              <PlaneTakeoff className="h-6 w-6 shrink-0 text-primary" />
-              <div className="flex-1 text-left">
-                <label className="block text-sm font-semibold uppercase tracking-wide text-white/60">Origen</label>
-                <input
-                  value={origen}
-                  onChange={(e) => setOrigen(e.target.value)}
-                  placeholder="Ciudad o código"
-                  className="w-full bg-transparent text-lg font-medium text-white outline-none placeholder:font-normal placeholder:text-white/50"
-                />
-              </div>
-            </div>
-
-            <div className="hidden w-px bg-white/25 sm:block" />
-            <div className="block h-px w-full bg-white/25 sm:hidden" />
-
-            <button
-              type="button"
-              onClick={handleSwap}
-              aria-label="Intercambiar origen y destino"
-              className="absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-neutral-900 text-white/80 transition-colors hover:text-primary"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </button>
-
-            <div className="flex flex-1 items-center gap-3 px-4 py-3">
-              <PlaneLanding className="h-6 w-6 shrink-0 text-primary" />
-              <div className="flex-1 text-left">
-                <label className="block text-sm font-semibold uppercase tracking-wide text-white/60">Destino</label>
-                <input
-                  value={destino}
-                  onChange={(e) => setDestino(e.target.value)}
-                  placeholder="Ciudad o código"
-                  className="w-full bg-transparent text-lg font-medium text-white outline-none placeholder:font-normal placeholder:text-white/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Salida / Regreso combinados en la misma cápsula; ambos botones
-              abren el mismo calendario de dos meses. */}
-          <div className="flex flex-col overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] sm:flex-row lg:h-16 lg:w-auto">
-            <button
-              type="button"
-              onClick={() => setDatePickerOpen(true)}
-              className="flex flex-1 items-center gap-3 px-4 py-3 text-left lg:min-w-[180px]"
-            >
-              <CalendarDays className="h-6 w-6 shrink-0 text-primary" />
-              <div className="flex-1">
-                <span className="block text-sm font-semibold uppercase tracking-wide text-white/60">Salida</span>
-                <span className={`block text-lg font-medium ${salida ? 'text-white' : 'text-white/50'}`}>
-                  {salida ? formatShortDate(salida) : 'dd/mm/aaaa'}
-                </span>
-              </div>
-            </button>
-
-            {tripType === 'ida-vuelta' && (
-              <>
-                <div className="hidden w-px bg-white/25 sm:block" />
-                <div className="block h-px w-full bg-white/25 sm:hidden" />
-                <button
-                  type="button"
-                  onClick={() => setDatePickerOpen(true)}
-                  className="flex flex-1 items-center gap-3 px-4 py-3 text-left lg:min-w-[180px]"
-                >
-                  <CalendarDays className="h-6 w-6 shrink-0 text-primary" />
-                  <div className="flex-1">
-                    <span className="block text-sm font-semibold uppercase tracking-wide text-white/60">Regreso</span>
-                    <span className={`block text-lg font-medium ${regreso ? 'text-white' : 'text-white/50'}`}>
-                      {regreso ? formatShortDate(regreso) : 'dd/mm/aaaa'}
-                    </span>
-                  </div>
-                </button>
-              </>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            size="lg"
-            className="h-auto w-full rounded-xl py-3 text-2xl font-bold text-white lg:h-16 lg:w-auto lg:px-12 lg:text-3xl"
-          >
-            Buscar
-          </Button>
-        </div>
-
-        {datePickerOpen && (
-          <FlightCalendarPopover
-            tripType={tripType}
-            salida={salida}
-            regreso={regreso}
-            onChangeSalida={setSalida}
-            onChangeRegreso={setRegreso}
-            onClose={() => setDatePickerOpen(false)}
-            origenCodigo={origen.trim() ? origen.trim().toUpperCase() : undefined}
-            destinoCodigo={destino.trim() ? destino.trim().toUpperCase() : undefined}
-          />
-        )}
-      </form>
+      <FlightSearchBar
+        className="mx-auto mt-8 max-w-[1280px]"
+        onSearch={({ origen, destino, fecha }) => {
+          const params = new URLSearchParams()
+          if (origen) params.set('origen', origen)
+          if (destino) params.set('destino', destino)
+          if (fecha) params.set('fecha', fecha)
+          navigate(`/flights${params.toString() ? `?${params.toString()}` : ''}`)
+        }}
+      />
     </section>
   )
 }
@@ -346,283 +170,6 @@ function PromoCard() {
   )
 }
 
-const DESTINATION_GRADIENTS = [
-  'from-primary/60 to-neutral-900',
-  'from-emerald-600/60 to-neutral-900',
-  'from-amber-600/60 to-neutral-900',
-  'from-fuchsia-600/60 to-neutral-900',
-]
-
-// Fotos de respaldo por ciudad (subidas al repo), para cuando el aeropuerto
-// todavía no tiene una foto real cargada desde /admin/aeropuertos. Si el
-// admin sube una foto real, esa tiene prioridad (ver imageUrl más abajo).
-const DESTINATION_IMAGES: Record<string, string> = {
-  UIO: quitoImage,
-  GYE: guayaquilImage,
-  BOG: bogotaImage,
-  LIM: limaImage,
-}
-
-/**
- * Tarjeta de destino estilo Avianca: la imagen (o degradado de respaldo)
- * ocupa toda la tarjeta y el texto se superpone abajo sobre un scrim
- * oscuro, en vez de vivir en una barra sólida separada debajo de la foto.
- * Se reutiliza tanto en "Ofertas desde [Ciudad]" como en "Ofertas
- * destacadas" para que ambas secciones compartan el mismo lenguaje visual.
- *
- * El badge de la esquina superior (Nacional/Internacional) sale de comparar
- * el país real del aeropuerto de origen y destino (tabla Aeropuertos), y el
- * precio en moneda local (segunda línea, más chica) se calcula con una tasa
- * de cambio en vivo — si esa tasa no está disponible (ver `currency.ts`),
- * simplemente no se muestra la segunda línea, nunca se inventa un valor.
- */
-function DestinationCard({
-  to,
-  ciudad,
-  caption,
-  precio,
-  precioLocal,
-  badge,
-  imageUrl,
-  gradient,
-}: {
-  to: string
-  ciudad: string
-  caption: string
-  precio?: number | null
-  precioLocal?: string | null
-  badge?: string | null
-  imageUrl?: string | null
-  gradient: string
-}) {
-  return (
-    <Link
-      to={to}
-      className="group relative isolate flex h-72 flex-col justify-end overflow-hidden rounded-2xl bg-neutral-800 text-white shadow-sm transition-transform hover:-translate-y-1"
-    >
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt=""
-          className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${gradient}`} />
-      )}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
-
-      {badge && (
-        <span className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-          {badge}
-        </span>
-      )}
-
-      <div className="relative flex items-end justify-between gap-3 p-5">
-        <div>
-          <p className="text-lg font-semibold">{ciudad}</p>
-          <p className="text-xs text-white/70">{caption}</p>
-        </div>
-        {precio != null && (
-          <div className="text-right">
-            <p className="text-lg font-bold text-primary">{precioLocal ?? formatPrice(precio)}</p>
-            {precioLocal && <p className="text-xs text-white/60">{formatPrice(precio)}</p>}
-          </div>
-        )}
-      </div>
-    </Link>
-  )
-}
-
-interface DestinationDeal {
-  codigo: string
-  ciudad: string
-  pais: string
-  precio: number | null
-  fotoUrl: string | null
-}
-
-/**
- * "Ofertas desde [Ciudad]": selector de aeropuerto de origen + hasta 3
- * tarjetas con el destino y el precio más barato real entre los próximos
- * vuelos de esa ruta (se trae un lote con origenCodigo y se calcula el
- * mínimo por destino en el cliente, porque la API no soporta ordenar por
- * precio).
- *
- * Tanto el selector como las tarjetas se conectan con la tabla real de
- * Aeropuertos (GET /aeropuertos/, pública) en vez de una lista fija en el
- * frontend — así cualquier aeropuerto que un admin agregue desde el panel
- * aparece automáticamente aquí. De cada aeropuerto solo se muestra la
- * ciudad (igual que antes); el país real se usa para el badge
- * Nacional/Internacional y para elegir la moneda local del precio, pero
- * nunca se expone el nombre completo del aeropuerto.
- */
-function DestinationOffersSection() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const [airports, setAirports] = useState<Airport[]>([])
-  const [origenCodigo, setOrigenCodigo] = useState<string | null>(null)
-  const [selectorOpen, setSelectorOpen] = useState(false)
-  const [deals, setDeals] = useState<DestinationDeal[]>([])
-  const [hasRealPrices, setHasRealPrices] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [rates, setRates] = useState<Record<string, number>>({})
-
-  // Catálogo real de aeropuertos (una sola vez) + tasas de cambio en vivo
-  // (una sola vez, cacheadas a nivel de módulo en currency.ts).
-  useEffect(() => {
-    listAirportsUseCase
-      .execute()
-      .then((result) => {
-        setAirports(result)
-        setOrigenCodigo((prev) => prev ?? result.find((a) => a.codigoIata === 'BOG')?.codigoIata ?? result[0]?.codigoIata ?? null)
-      })
-      .catch(() => setAirports([]))
-
-    fetchExchangeRates().then(setRates)
-  }, [])
-
-  const origenActual = airports.find((a) => a.codigoIata === origenCodigo) ?? null
-  const otrosDestinos = airports.filter((a) => a.codigoIata !== origenCodigo)
-
-  useEffect(() => {
-    if (!origenCodigo) return
-    let active = true
-    setLoading(true)
-
-    getFlightsUseCase
-      .execute({ origenCodigo, ordering: 'salida_programada', limite: 100 })
-      .then((result) => {
-        if (!active) return
-
-        const cheapestByDestino = new Map<string, Flight>()
-        for (const flight of result.resultados) {
-          if (flight.destinoCodigo === origenCodigo) continue
-          const existing = cheapestByDestino.get(flight.destinoCodigo)
-          if (!existing || flight.precioBase < existing.precioBase) {
-            cheapestByDestino.set(flight.destinoCodigo, flight)
-          }
-        }
-
-        const real = Array.from(cheapestByDestino.values())
-          .sort((a, b) => a.precioBase - b.precioBase)
-          .slice(0, 3)
-          .map((flight) => {
-            const aeropuerto = airports.find((a) => a.codigoIata === flight.destinoCodigo)
-            return {
-              codigo: flight.destinoCodigo,
-              ciudad: flight.destinoCiudad,
-              pais: aeropuerto?.pais ?? '',
-              precio: flight.precioBase,
-              fotoUrl: aeropuerto?.fotoUrl ?? null,
-            }
-          })
-
-        if (real.length > 0) {
-          setDeals(real)
-          setHasRealPrices(true)
-        } else {
-          setDeals(
-            otrosDestinos
-              .slice(0, 3)
-              .map((d) => ({ codigo: d.codigoIata, ciudad: d.ciudad, pais: d.pais, precio: null, fotoUrl: d.fotoUrl })),
-          )
-          setHasRealPrices(false)
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        if (!active) return
-        setDeals(
-          otrosDestinos
-            .slice(0, 3)
-            .map((d) => ({ codigo: d.codigoIata, ciudad: d.ciudad, pais: d.pais, precio: null, fotoUrl: d.fotoUrl })),
-        )
-        setHasRealPrices(false)
-        setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origenCodigo, airports])
-
-  if (!loading && airports.length === 0) return null
-
-  return (
-    <section className="px-4 pb-16 pt-8 sm:px-6">
-      <div className="mx-auto w-full max-w-[1280px]">
-        <div className="relative mb-8 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setSelectorOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight"
-          >
-            Ofertas desde <span className="text-primary">{origenActual?.ciudad ?? '...'}</span>
-            <ChevronDown className={`h-5 w-5 text-primary transition-transform ${selectorOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {selectorOpen && (
-            <div className="absolute top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border bg-popover shadow-lg">
-              {airports.map((airport) => (
-                <button
-                  key={airport.codigoIata}
-                  type="button"
-                  onClick={() => {
-                    setOrigenCodigo(airport.codigoIata)
-                    setSelectorOpen(false)
-                  }}
-                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted ${
-                    airport.codigoIata === origenCodigo ? 'font-semibold text-primary' : ''
-                  }`}
-                >
-                  {airport.ciudad}
-                  <span className="text-xs text-muted-foreground">{airport.codigoIata}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-72 rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            {deals.map((deal, i) => (
-              <DestinationCard
-                key={deal.codigo}
-                to={isAuthenticated ? `/flights?origen=${origenCodigo}&destino=${deal.codigo}` : '/login'}
-                ciudad={deal.ciudad}
-                caption={
-                  hasRealPrices
-                    ? 'Por trayecto desde'
-                    : isAuthenticated
-                      ? 'Ver disponibilidad'
-                      : 'Inicia sesión para ver precios'
-                }
-                precio={deal.precio}
-                precioLocal={deal.precio != null && deal.pais ? formatLocalAmount(deal.precio, deal.pais, rates) : null}
-                imageUrl={deal.fotoUrl ?? DESTINATION_IMAGES[deal.codigo] ?? null}
-                badge={
-                  deal.pais && origenActual?.pais
-                    ? deal.pais === origenActual.pais
-                      ? 'Nacional'
-                      : 'Internacional'
-                    : null
-                }
-                gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
 /**
  * 3 tarjetas de funcionalidades reales de SkyOps (no beneficios inventados
  * tipo "check-in" o "programa de millas" que el backend no modela).
@@ -655,79 +202,25 @@ function FeaturesSection() {
   ]
 
   return (
-    <section className="px-4 py-4 sm:px-6">
+    <section className="px-4 pb-20 pt-4 sm:px-6">
       <div className="mx-auto w-full max-w-[1280px]">
         <h2 className="mb-8 text-2xl font-semibold tracking-tight">Prepárate para volar</h2>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {features.map((feature) => (
-            <Card key={feature.title} className="flex flex-col justify-between p-6">
-              <div>
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
-                  <feature.icon className="h-5 w-5 text-primary" />
-                </div>
-                <p className="font-semibold">{feature.title}</p>
-                <p className="mt-1.5 text-sm text-muted-foreground">{feature.text}</p>
+            <Link
+              key={feature.title}
+              to={feature.to}
+              className="flex items-center gap-4 rounded-xl bg-black p-6 transition-colors hover:bg-neutral-900"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10">
+                <feature.icon className="h-5 w-5 text-primary" />
               </div>
-              <Link to={feature.to} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
-                {feature.cta}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Card>
+              <div>
+                <p className="font-semibold text-white">{feature.title}</p>
+                <p className="mt-1 text-sm text-white/60">{feature.text}</p>
+              </div>
+            </Link>
           ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-/**
- * Cierre en dos paneles: pasajeros vs. equipo de operaciones — las dos
- * caras reales de la plataforma, en vez de un beneficio de marca inventado.
- */
-function AudienceSection() {
-  const { isAuthenticated, user } = useAuthStore()
-  const isStaff = isAuthenticated && (user?.esStaff || user?.esOperador)
-
-  return (
-    <section className="px-4 pb-20 sm:px-6">
-      <div className="mx-auto w-full max-w-[1280px]">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="rounded-2xl bg-primary p-8 text-primary-foreground sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-foreground/70">Para pasajeros</p>
-            <h3 className="mt-2 text-2xl font-bold">Reserva tu próximo vuelo</h3>
-            <p className="mt-2 text-sm text-primary-foreground/85">
-              Encuentra el vuelo ideal y confirma tu reserva en pocos pasos.
-            </p>
-            <Button asChild size="lg" variant="secondary" className="mt-6 w-fit rounded-full">
-              <Link to="/flights">
-                Ver vuelos
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-neutral-800 p-8 text-white sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Para el equipo de operaciones</p>
-            <h3 className="mt-2 text-2xl font-bold">Panel de control del aeropuerto</h3>
-            <p className="mt-2 text-sm text-white/70">
-              Administra vuelos, aeronaves, tripulaciones e incidentes desde un solo panel.
-            </p>
-            <Button asChild size="lg" className="mt-6 w-fit rounded-full">
-              <Link to={isStaff ? '/admin' : '/login'}>
-                {isStaff ? (
-                  <>
-                    <LayoutDashboard className="h-4 w-4" />
-                    Ir al panel
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4" />
-                    Iniciar sesión
-                  </>
-                )}
-              </Link>
-            </Button>
-          </div>
         </div>
       </div>
     </section>
@@ -739,9 +232,10 @@ export default function HomePage() {
     <div className="flex flex-col">
       <TopInfoBar />
       <HeroSection />
-      <DestinationOffersSection />
+      <section className="px-4 pb-16 pt-8 sm:px-6">
+        <DestinationOffersSection extraLimit={4} className="mx-auto w-full max-w-[1280px]" />
+      </section>
       <FeaturesSection />
-      <AudienceSection />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 /* src/index.css */
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -82,5 +83,17 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* El selector nativo de fecha (calendario del navegador que abre un
+     <input type="date">) no se puede restylear con clases de Tailwind: es
+     UI del sistema operativo/navegador, no HTML nuestro. `color-scheme` es
+     la única palanca real que expone el navegador para pintarlo oscuro (o
+     claro) en vez del blanco por defecto, así que en modo oscuro calza con
+     el resto de la pantalla en vez de verse como un recuadro ajeno. */
+  .dark input[type='date'],
+  .dark input[type='time'],
+  .dark input[type='datetime-local'] {
+    color-scheme: dark;
   }
 }

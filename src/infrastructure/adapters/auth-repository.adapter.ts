@@ -76,6 +76,12 @@ export class AuthRepositoryAxiosAdapter implements AuthRepository {
         last_name: payload.lastName,
         password: payload.password,
         password2: payload.password2,
+        pais: payload.pais,
+        tipo_documento: payload.tipoDocumento,
+        numero_documento: payload.numeroDocumento,
+        fecha_nacimiento: payload.fechaNacimiento,
+        genero: payload.genero,
+        telefono: payload.telefono,
       })
       // La respuesta de registro no repite nombre/apellido/es_staff (a
       // diferencia del login): los completamos con lo que el propio

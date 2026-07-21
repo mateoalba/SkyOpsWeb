@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-import { Building2, DoorOpen, MapPin, Trash2 } from 'lucide-react'
+import { Building2, Compass, DoorOpen, MapPin, Trash2, UploadCloud } from 'lucide-react'
 
 import type { AdminRecord } from '@/domain/ports/admin-resource-repository.port'
 import { AdminCrudPage, type AdminCardActions, type AdminColumn, type AdminFormProps } from '@/presentation/pages/admin/AdminCrudPage'
@@ -86,134 +86,181 @@ function AeropuertoForm({ initialValues, onSubmit, onCancel, isSaving, error }: 
       ...(foto ? { foto } : {}),
     })
 
+  const fotoMostrada = preview || fotoActual
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <FormField
-            control={form.control}
-            name="nombre"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nombre</FormLabel>
-                <FormControl>
-                  <Input placeholder="Aeropuerto Mariscal Sucre" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+        {/* Fila 1: la foto ocupa exactamente el mismo alto que el bloque de
+            Nombre + Código IATA/Zona horaria + Ciudad/País de al lado —
+            ambas columnas son ítems de un mismo grid, así que se estiran
+            parejo sin necesidad de una altura fija adivinada. */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr] md:items-stretch">
+          {/* Un solo recuadro que es a la vez la previsualización y el
+              disparador de subida — si ya hay foto, se ve la foto y el
+              hover invita a cambiarla; si no hay foto, se ve el recuadro de
+              "Subir nueva foto". Nunca los dos a la vez. */}
+          <label className="group relative flex h-full min-h-[180px] w-full cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed text-center transition-colors hover:bg-accent">
+            {fotoMostrada ? (
+              <>
+                <img src={fotoMostrada} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/0 opacity-0 transition-all group-hover:bg-black/60 group-hover:opacity-100">
+                  <UploadCloud className="h-5 w-5 text-white" />
+                  <span className="text-sm font-medium text-white">Cambiar foto</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <UploadCloud className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Subir nueva foto</span>
+                <span className="text-xs text-muted-foreground">PNG, JPG hasta 10MB</span>
+              </>
             )}
-          />
-          <FormField
-            control={form.control}
-            name="codigoIata"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Código IATA</FormLabel>
-                <FormControl>
-                  <Input placeholder="UIO" maxLength={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField
-            control={form.control}
-            name="ciudad"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ciudad</FormLabel>
-                <FormControl>
-                  <Input placeholder="Quito" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="pais"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>País</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ecuador" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField
-            control={form.control}
-            name="latitud"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Latitud</FormLabel>
-                <FormControl>
-                  <Input type="number" step="any" placeholder="-0.129" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="longitud"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Longitud</FormLabel>
-                <FormControl>
-                  <Input type="number" step="any" placeholder="-78.487" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="zonaHoraria"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Zona horaria</FormLabel>
-              <FormControl>
-                <Input placeholder="America/Guayaquil" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="space-y-2">
-          <FormLabel>Foto</FormLabel>
-          {(preview || fotoActual) && (
-            <img src={preview || fotoActual} alt="" className="h-32 w-full rounded-md object-cover" />
-          )}
-          <Input type="file" accept="image/*" onChange={handleFotoChange} />
-          <p className="text-xs text-muted-foreground">
-            Sube una imagen desde tu ordenador, o pega un enlace abajo si prefieres usar una URL existente.
-          </p>
+            <input type="file" accept="image/*" className="sr-only" onChange={handleFotoChange} />
+          </label>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="nombre"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del aeropuerto</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Aeropuerto Mariscal Sucre" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="codigoIata"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código IATA</FormLabel>
+                    <FormControl>
+                      <Input placeholder="UIO" maxLength={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="zonaHoraria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zona horaria</FormLabel>
+                    <FormControl>
+                      <Input placeholder="America/Guayaquil" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="ciudad"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ciudad</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Quito" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pais"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>País</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ecuador" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="fotoUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL de foto (opcional)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." {...field} disabled={Boolean(foto)} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Fila 2: URL manual (alineada bajo la foto) + separador y
+            coordenadas (alineados bajo los datos), como una segunda fila
+            independiente para no afectar el alto de la fila de arriba. */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
+          <FormField
+            control={form.control}
+            name="fotoUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL de foto (opcional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} disabled={Boolean(foto)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 py-1">
+              <span className="h-px flex-1 bg-border" />
+              <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Coordenadas geográficas
+              </span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="latitud"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Latitud</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input type="number" step="any" placeholder="-0.129" className="pl-9" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="longitud"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Longitud</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Compass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input type="number" step="any" placeholder="-78.487" className="pl-9" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
@@ -290,6 +337,7 @@ export default function AeropuertosPage() {
       FormComponent={AeropuertoForm}
       itemLabel="aeropuertos"
       renderCard={AeropuertoCard}
+      dialogClassName="sm:max-w-4xl"
     />
   )
 }
