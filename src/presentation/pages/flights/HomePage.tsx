@@ -29,7 +29,6 @@ import { Card } from '@/presentation/components/ui/card'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
 import { FlightCalendarPopover } from '@/presentation/components/flight-calendar-popover'
 import { formatPrice } from '@/presentation/utils/formatters'
-import { fetchExchangeRates, formatLocalAmount } from '@/presentation/utils/currency'
 
 type TripType = 'ida-vuelta' | 'solo-ida'
 
@@ -349,6 +348,13 @@ const DESTINATION_GRADIENTS = [
   'from-fuchsia-600/60 to-neutral-900',
 ]
 
+const DESTINATION_IMAGES: Record<string, string> = {
+  UIO: quitoImage,
+  GYE: guayaquilImage,
+  BOG: bogotaImage,
+  LIM: limaImage,
+}
+
 /**
  * Tarjeta de destino estilo Avianca: la imagen (o degradado de respaldo)
  * ocupa toda la tarjeta y el texto se superpone abajo sobre un scrim
@@ -590,15 +596,6 @@ function DestinationOffersSection() {
                       : 'Inicia sesión para ver precios'
                 }
                 precio={deal.precio}
-                precioLocal={deal.precio != null && deal.pais ? formatLocalAmount(deal.precio, deal.pais, rates) : null}
-                imageUrl={deal.fotoUrl}
-                badge={
-                  deal.pais && origenActual?.pais
-                    ? deal.pais === origenActual.pais
-                      ? 'Nacional'
-                      : 'Internacional'
-                    : null
-                }
                 gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
               />
             ))}
