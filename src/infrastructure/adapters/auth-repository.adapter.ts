@@ -13,6 +13,7 @@ interface RawUsuarioLogin {
   nombre: string
   apellido: string
   es_staff: boolean
+  es_operador: boolean
 }
 
 interface RawLoginResponse {
@@ -59,6 +60,7 @@ export class AuthRepositoryAxiosAdapter implements AuthRepository {
         nombre: data.usuario.nombre,
         apellido: data.usuario.apellido,
         esStaff: data.usuario.es_staff,
+        esOperador: data.usuario.es_operador,
       }
       return { access: data.access, refresh: data.refresh, user }
     } catch (error) {
@@ -77,7 +79,10 @@ export class AuthRepositoryAxiosAdapter implements AuthRepository {
       })
       // La respuesta de registro no repite nombre/apellido/es_staff (a
       // diferencia del login): los completamos con lo que el propio
-      // formulario ya conocía.
+      // formulario ya conocía. Un registro público nunca crea un admin ni
+      // un operador (esos roles los asigna un admin desde el backend), así
+      // que ambos se completan en false sin necesidad de preguntarle al
+      // servidor.
       const user: AuthUser = {
         id: data.usuario.id,
         username: data.usuario.username,
@@ -85,6 +90,7 @@ export class AuthRepositoryAxiosAdapter implements AuthRepository {
         nombre: payload.firstName,
         apellido: payload.lastName,
         esStaff: false,
+        esOperador: false,
       }
       return { access: data.access, refresh: data.refresh, user }
     } catch (error) {

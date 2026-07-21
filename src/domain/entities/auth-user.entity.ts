@@ -12,5 +12,12 @@ export interface AuthUser {
   email: string
   nombre: string
   apellido: string
+  /** Acceso total: solo is_staff en el backend. */
   esStaff: boolean
+  /**
+   * Puede leer, crear y editar recursos de administración, pero no
+   * eliminar (grupo Django "Operadores" — ver permissions.EsOperador en el
+   * backend). Un admin (esStaff) siempre cumple esOperador también.
+   */
+  esOperador: boolean
 }

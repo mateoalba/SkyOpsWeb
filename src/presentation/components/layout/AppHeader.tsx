@@ -1,5 +1,5 @@
 // src/presentation/components/layout/AppHeader.tsx
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   Menu,
@@ -11,9 +11,6 @@ import {
   LayoutDashboard,
   Ticket,
   ChevronDown,
-  Search,
-  Bell,
-  Plus,
   ArrowRight,
 } from 'lucide-react'
 
@@ -40,7 +37,7 @@ import { cn } from '@/presentation/utils/cn'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return cn(
-    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent',
+    'rounded-md px-4 py-2.5 text-lg font-semibold transition-colors hover:bg-accent',
     isActive && 'text-primary',
   )
 }
@@ -49,7 +46,6 @@ export function AppHeader() {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuthStore()
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
 
   const close = () => setOpen(false)
 
@@ -59,21 +55,19 @@ export function AppHeader() {
     navigate('/login')
   }
 
-  const handleSearch = (event: FormEvent) => {
-    event.preventDefault()
-    if (search.trim()) navigate(`/flights?search=${encodeURIComponent(search.trim())}`)
-  }
-
   return (
-    <header className="sticky top-0 z-40 flex h-20 items-center justify-between gap-4 border-b bg-background px-4 shadow-sm sm:px-6">
-      <div className="flex items-center gap-6">
-        <Link to="/" className="flex items-center gap-2 text-xl font-bold" onClick={close}>
-          <PlaneTakeoff className="h-6 w-6" />
-          SkyOps
+    <header className="sticky top-0 z-40 flex h-20 items-center justify-between gap-4 border-b bg-background px-12 shadow-sm sm:px-20">
+      <div className="flex items-center gap-10">
+        <Link to="/" className="flex items-center gap-2 text-3xl font-extrabold" onClick={close}>
+          <PlaneTakeoff className="h-7 w-7 text-primary" />
+          <span>
+            <span className="text-foreground">Sky</span>
+            <span className="text-primary">Ops</span>
+          </span>
         </Link>
 
         {/* Navegación visible en escritorio — en móvil vive dentro del menú hamburguesa */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-3 md:flex">
           <NavLink to="/" end className={navLinkClass}>
             Inicio
           </NavLink>
@@ -83,9 +77,9 @@ export function AppHeader() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent">
+              <button className="flex items-center gap-2 rounded-md px-4 py-2.5 text-lg font-semibold transition-colors hover:bg-accent">
                 Descubre
-                <ChevronDown className="h-3.5 w-3.5" />
+                <ChevronDown className="h-5 w-5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-[560px] p-0">
@@ -135,31 +129,13 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Buscador — solo en pantallas grandes */}
-        <form onSubmit={handleSearch} className="hidden items-center rounded-full bg-muted px-3 py-1.5 lg:flex">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar vuelo..."
-            className="w-40 bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </form>
-
-        <button
-          className="hidden rounded-full p-2 transition-colors hover:bg-accent md:block"
-          aria-label="Notificaciones"
-        >
-          <Bell className="h-5 w-5 text-muted-foreground" />
-        </button>
-
         {/* Cuenta en escritorio */}
         <div className="hidden md:block">
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full p-2 transition-colors hover:bg-accent">
-                  <UserIcon className="h-5 w-5 text-muted-foreground" />
+                <button className="flex items-center gap-2 rounded-full p-3 transition-colors hover:bg-accent">
+                  <UserIcon className="h-7 w-7 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -171,7 +147,7 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link to="/mis-reservas">Mis reservas</Link>
                 </DropdownMenuItem>
-                {user?.esStaff && (
+                {(user?.esStaff || user?.esOperador) && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">Panel de administración</Link>
                   </DropdownMenuItem>
@@ -184,27 +160,12 @@ export function AppHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
+            <Button asChild variant="ghost" size="lg" className="hidden text-lg font-semibold md:inline-flex">
               <Link to="/login">Iniciar sesión</Link>
             </Button>
           )}
         </div>
 
-        {/* CTA principal — cambia según el rol */}
-        {isAuthenticated && user?.esStaff ? (
-          <Button asChild size="sm" className="hidden md:inline-flex">
-            <Link to="/admin/vuelos">
-              <Plus className="h-4 w-4" />
-              Nuevo Vuelo
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild size="sm" className="hidden md:inline-flex">
-            <Link to={isAuthenticated ? '/flights' : '/register'}>
-              {isAuthenticated ? 'Reservar' : 'Crear cuenta'}
-            </Link>
-          </Button>
-        )}
 
         {/* Hamburguesa — solo en móvil */}
         <Sheet open={open} onOpenChange={setOpen}>
@@ -296,10 +257,10 @@ export function AppHeader() {
                 )}
               </div>
 
-              {/* Solo usuarios staff (is_staff en el backend) ven la administración.
-                  Un pasajero normal nunca llega a ver estos links, ni siquiera si
-                  escribe la URL a mano (RequireAdmin lo bloquea igual). */}
-              {isAuthenticated && user?.esStaff && (
+              {/* Admin y Operador ven la administración (ambos tienen acceso real
+                  en el backend). Un pasajero normal nunca llega a ver estos links,
+                  ni siquiera escribiendo la URL a mano (RequireAdmin lo bloquea igual). */}
+              {isAuthenticated && (user?.esStaff || user?.esOperador) && (
                 <>
                   <Separator className="my-4" />
                   <div className="space-y-1">
