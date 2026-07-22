@@ -12,6 +12,11 @@ export interface AdminListParams {
   page?: number
   limite?: number
   ordering?: string
+  /** Parámetros extra de query string específicos de un recurso puntual
+   * (p. ej. `incluir_pasados: 'true'` para que /admin/vuelos vea también los
+   * vuelos ya pasados, cosa que el buscador público no pide). El motor
+   * genérico de AdminCrudPage no sabe qué significan, solo los reenvía. */
+  extra?: Record<string, string | number | boolean>
 }
 
 export interface AdminPaginatedResult {

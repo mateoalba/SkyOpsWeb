@@ -60,6 +60,7 @@ export class AdminResourceRepositoryAxiosAdapter implements AdminResourceReposit
           ...(params?.page ? { page: params.page } : {}),
           ...(params?.limite ? { limite: params.limite } : {}),
           ...(params?.ordering ? { ordering: params.ordering } : {}),
+          ...(params?.extra ?? {}),
         },
       })
       return data

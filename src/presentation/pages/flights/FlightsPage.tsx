@@ -13,14 +13,35 @@ import { listAirportsUseCase } from '@/infrastructure/factories/airport.factory'
 import type { Flight } from '@/domain/entities/flight.entity'
 import type { Airport } from '@/domain/entities/airport.entity'
 
+function formatFechaCorta(iso: string): string {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'long' }).format(date)
+}
+
 /**
- * Resultados reales de una búsqueda con origen + destino (y opcionalmente
- * fecha): a diferencia de "Ofertas desde" (que solo navega por destino y
- * precio más barato), esto sí consulta GET /vuelos/ con esa ruta exacta y
- * muestra los vuelos reales encontrados debajo de la barra de búsqueda — o
- * un estado vacío si no hay ninguno programado todavía para esa ruta. La
- * sección "Ofertas desde" de más abajo (ver FlightsPage) nunca se oculta por
- * esto, así que el visitante siempre puede seguir explorando otros destinos.
+ * Arma la descripción en palabras de la búsqueda actual: "de Quito a
+ * Guayaquil", "desde Quito" (si solo hay origen), "hacia Guayaquil" (si solo
+ * hay destino), o vacío si la búsqueda es solo por fecha (sin ruta puntual).
+ */
+function buildRouteLabel(origenCiudad: string | null, destinoCiudad: string | null): string {
+  if (origenCiudad && destinoCiudad) return `de ${origenCiudad} a ${destinoCiudad}`
+  if (origenCiudad) return `desde ${origenCiudad}`
+  if (destinoCiudad) return `hacia ${destinoCiudad}`
+  return ''
+}
+
+/**
+ * Resultados reales de una búsqueda: origen y/o destino son ahora opcionales
+ * — si el visitante solo elige una fecha (sin llenar origen ni destino), se
+ * muestran los primeros vuelos disponibles ese día en toda la flota, en vez
+ * de no buscar nada. A diferencia de "Ofertas desde" (que solo navega por
+ * destino y precio más barato), esto sí consulta GET /vuelos/ con los
+ * filtros reales y muestra los vuelos encontrados debajo de la barra de
+ * búsqueda — o un estado vacío si no hay ninguno. La sección "Ofertas desde"
+ * de más abajo (ver FlightsPage) nunca se oculta por esto, así que el
+ * visitante siempre puede seguir explorando otros destinos.
  */
 function FlightSearchResults({
   origenCodigo,
@@ -37,6 +58,11 @@ function FlightSearchResults({
   const [loading, setLoading] = useState(true)
   const [airports, setAirports] = useState<Airport[]>([])
 
+  // Sin ruta puntual (ni origen ni destino), es una búsqueda amplia por
+  // fecha sobre toda la flota — ahí sí conviene topear a los primeros 10
+  // resultados en vez de traer decenas de vuelos sin relación entre sí.
+  const isRouteSearch = Boolean(origenCodigo && destinoCodigo)
+
   useEffect(() => {
     listAirportsUseCase.execute().then(setAirports).catch(() => setAirports([]))
   }, [])
@@ -48,11 +74,11 @@ function FlightSearchResults({
 
     getFlightsUseCase
       .execute({
-        origenCodigo,
-        destinoCodigo,
+        origenCodigo: origenCodigo || undefined,
+        destinoCodigo: destinoCodigo || undefined,
         fecha: fecha || undefined,
         ordering: 'salida_programada',
-        limite: 50,
+        limite: isRouteSearch ? 50 : 10,
       })
       .then((result) => {
         if (!active) return
@@ -69,10 +95,14 @@ function FlightSearchResults({
     return () => {
       active = false
     }
-  }, [origenCodigo, destinoCodigo, fecha])
+  }, [origenCodigo, destinoCodigo, fecha, isRouteSearch])
 
-  const origenCiudad = airports.find((a) => a.codigoIata === origenCodigo)?.ciudad ?? origenCodigo
-  const destinoCiudad = airports.find((a) => a.codigoIata === destinoCodigo)?.ciudad ?? destinoCodigo
+  const origenCiudad = origenCodigo ? airports.find((a) => a.codigoIata === origenCodigo)?.ciudad ?? origenCodigo : null
+  const destinoCiudad = destinoCodigo
+    ? airports.find((a) => a.codigoIata === destinoCodigo)?.ciudad ?? destinoCodigo
+    : null
+  const routeLabel = buildRouteLabel(origenCiudad, destinoCiudad)
+  const fechaLabel = fecha ? formatFechaCorta(fecha) : ''
 
   if (loading) {
     return (
@@ -92,8 +122,9 @@ function FlightSearchResults({
         </div>
         <div>
           <p className="text-lg font-semibold">
-            Todavía no hay vuelos de {origenCiudad} a {destinoCiudad}
-            {fecha ? ' en esa fecha' : ''}
+            {routeLabel
+              ? `Todavía no hay vuelos ${routeLabel}${fechaLabel ? ` para el ${fechaLabel}` : ''}`
+              : `Todavía no hay vuelos programados para el ${fechaLabel}`}
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Probá con otra fecha o mirá los destinos disponibles más abajo.
@@ -109,8 +140,11 @@ function FlightSearchResults({
   return (
     <div>
       <p className="mb-4 text-sm text-muted-foreground">
-        {flights.length} vuelo{flights.length === 1 ? '' : 's'} encontrado{flights.length === 1 ? '' : 's'} de{' '}
-        {origenCiudad} a {destinoCiudad}
+        {flights.length} vuelo{flights.length === 1 ? '' : 's'} {routeLabel ? 'encontrado' : 'disponible'}
+        {flights.length === 1 ? '' : 's'}
+        {routeLabel ? ` ${routeLabel}` : ''}
+        {fechaLabel ? ` para el ${fechaLabel}` : ''}
+        {!isRouteSearch && flights.length >= 10 ? ' (mostrando los primeros 10)' : ''}
       </p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {flights.map((flight) => (
@@ -128,11 +162,11 @@ function FlightSearchResults({
 
 /**
  * Pantalla de Vuelos: mismo buscador que el Home arriba. Si la búsqueda trae
- * origen Y destino (p. ej. al hacer clic en una tarjeta de "Ofertas desde"),
- * se muestra ese resultado real justo debajo de la barra (ver
- * FlightSearchResults) — pero la sección "Ofertas desde [Ciudad]" de más
- * abajo se sigue mostrando siempre, con todos los demás destinos, en vez de
- * desaparecer al buscar una ruta puntual.
+ * origen y/o destino (p. ej. al hacer clic en una tarjeta de "Ofertas
+ * desde"), o incluso solo una fecha sin ruta puntual, se muestra ese
+ * resultado real justo debajo de la barra (ver FlightSearchResults) — pero
+ * la sección "Ofertas desde [Ciudad]" de más abajo se sigue mostrando
+ * siempre, con todos los demás destinos, en vez de desaparecer al buscar.
  */
 export default function FlightsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -158,7 +192,7 @@ export default function FlightsPage() {
           onSearch={handleSearch}
         />
 
-        {origen && destino && (
+        {(origen || destino || fecha) && (
           <div className="mb-12">
             <h2 className="mb-4 text-xl font-semibold tracking-tight">Resultado de tu búsqueda</h2>
             <FlightSearchResults

@@ -691,6 +691,7 @@ export default function VuelosPage() {
       renderCard={(row, actions) => VueloCard(row, actions, fotosPorCodigo)}
       cardGridClassName="grid-cols-1 sm:grid-cols-2"
       dialogClassName="sm:max-w-5xl"
+      extraParams={{ incluir_pasados: 'true' }}
     />
   )
 }

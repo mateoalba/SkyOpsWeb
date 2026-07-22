@@ -88,6 +88,11 @@ interface AdminCrudPageProps {
    * con tarjetas más anchas (p. ej. Vuelos, con fotos a los lados) pueden
    * pedir solo 2 por fila con `"grid-cols-1 sm:grid-cols-2"`. */
   cardGridClassName?: string
+  /** Parámetros extra fijos que se mandan en cada listado de este recurso
+   * (p. ej. Vuelos pasa `{ incluir_pasados: 'true' }` para que el panel
+   * admin vea también los vuelos ya pasados, algo que el buscador público
+   * de vuelos no pide). */
+  extraParams?: Record<string, string | number | boolean>
 }
 
 function defaultCell(value: unknown): ReactNode {
@@ -106,6 +111,7 @@ export function AdminCrudPage({
   renderCard,
   dialogClassName,
   cardGridClassName,
+  extraParams,
 }: AdminCrudPageProps) {
   // Solo Admin (esStaff) puede eliminar — Operador puede leer, crear y
   // editar (permissions.EsOperador en el backend rechaza su DELETE con
@@ -133,7 +139,11 @@ export function AdminCrudPage({
     setIsLoading(true)
     setError(null)
     try {
-      const result = await getAdminResourceListUseCase.execute(endpoint, { page, search: searchTerm || undefined })
+      const result = await getAdminResourceListUseCase.execute(endpoint, {
+        page,
+        search: searchTerm || undefined,
+        extra: extraParams,
+      })
       setRows(result.resultados)
       setTotal(result.total)
       setTotalPages(result.paginas)
