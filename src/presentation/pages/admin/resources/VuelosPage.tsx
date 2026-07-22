@@ -28,6 +28,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/presentation/components/ui/form'
 import { FlightSeatMap } from '@/presentation/components/admin/flight-seat-map'
 import { AirportComboboxField } from '@/presentation/components/admin/airport-combobox-field'
+import { AdminDateTimeField } from '@/presentation/components/admin/datetime-field'
 import { formatDate, formatPrice, formatTime } from '@/presentation/utils/formatters'
 import { FLIGHT_STATUS_VARIANT } from '@/presentation/utils/flight-status-variant'
 import { cn } from '@/presentation/utils/cn'
@@ -380,7 +381,7 @@ function VueloForm({ initialValues, onSubmit, onCancel, isSaving, error, onDelet
               <FormItem>
                 <FormLabel className="text-base font-semibold">Salida programada</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" className="h-12 text-base" {...field} />
+                  <AdminDateTimeField value={field.value} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -393,7 +394,7 @@ function VueloForm({ initialValues, onSubmit, onCancel, isSaving, error, onDelet
               <FormItem>
                 <FormLabel className="text-base font-semibold">Llegada programada</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" className="h-12 text-base" {...field} />
+                  <AdminDateTimeField value={field.value} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -505,6 +506,11 @@ function VueloForm({ initialValues, onSubmit, onCancel, isSaving, error, onDelet
                   )
                 })}
               </div>
+              <p className="text-xs text-muted-foreground">
+                Programado, Embarcando, Despegado y Aterrizado se recalculan solos según el horario (1h antes de la
+                salida pasa a Embarcando, a la hora de salida a Despegado, a la hora de llegada a Aterrizado). Solo
+                Cancelado y Retrasado se quedan como los dejes tú.
+              </p>
               <FormMessage />
             </FormItem>
           )}

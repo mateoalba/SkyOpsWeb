@@ -1,5 +1,5 @@
 // src/presentation/pages/admin/resources/PuertasPage.tsx
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { DoorClosed, DoorOpen, Trash2, Wrench } from 'lucide-react'
 import type { AdminRecord } from '@/domain/ports/admin-resource-repository.port'
 import { useAdminOptions } from '@/presentation/hooks/use-admin-options'
 import { AdminCrudPage, type AdminCardActions, type AdminColumn, type AdminFormProps } from '@/presentation/pages/admin/AdminCrudPage'
+import { AirportComboboxField } from '@/presentation/components/admin/airport-combobox-field'
 import { Button } from '@/presentation/components/ui/button'
 import { Input } from '@/presentation/components/ui/input'
 import { Card, CardContent } from '@/presentation/components/ui/card'
@@ -40,7 +41,7 @@ const ESTADO_STYLE: Record<string, { icon: typeof DoorOpen; block: string; badge
 const schema = z.object({
   aeropuerto: z.string().min(1, 'Selecciona un aeropuerto.'),
   codigo: z.string().min(1, 'El código es obligatorio.'),
-  terminal: z.string().min(1, 'La terminal es obligatoria.'),
+  terminal: z.string().min(1, 'Selecciona una terminal.'),
   estado: z.string().min(1, 'Selecciona un estado.'),
 })
 
@@ -58,7 +59,8 @@ function rowToForm(row: AdminRecord): FormValues {
 }
 
 function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDelete }: AdminFormProps) {
-  const { options: aeropuertos } = useAdminOptions('/aeropuertos/', (r) => `${r.nombre} (${r.codigo_iata})`)
+  const { rows: aeropuertos } = useAdminOptions('/aeropuertos/', (r) => `${r.nombre} (${r.codigo_iata})`)
+  const { rows: terminalesRaw } = useAdminOptions('/terminales/', (r) => `${r.codigo} - ${r.nombre}`)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -69,6 +71,30 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDele
     form.reset(initialValues ? rowToForm(initialValues) : EMPTY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues])
+
+  // La Terminal ahora es una FK real a la tabla Terminal (antes era texto
+  // libre) — solo se ofrecen las terminales que de verdad pertenecen al
+  // aeropuerto ya elegido arriba, igual que en Vuelos con Aerolínea→Aeronave
+  // y Origen→Puerta.
+  const aeropuertoSeleccionado = form.watch('aeropuerto')
+  const terminales = terminalesRaw
+    .filter((t) => !aeropuertoSeleccionado || String(t.aeropuerto) === aeropuertoSeleccionado)
+    .map((t) => ({ value: String(t.id), label: `${t.codigo} - ${t.nombre}` }))
+
+  // Si el aeropuerto cambia después del primer render (el usuario elige
+  // otro), la terminal que hubiera quedado seleccionada ya no
+  // necesariamente pertenece al nuevo aeropuerto — se limpia para no dejar
+  // guardar una combinación inválida. En el primer render (carga de datos al
+  // editar una puerta existente) no se toca nada.
+  const isFirstAeropuertoSync = useRef(true)
+  useEffect(() => {
+    if (isFirstAeropuertoSync.current) {
+      isFirstAeropuertoSync.current = false
+      return
+    }
+    form.setValue('terminal', '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aeropuertoSeleccionado])
 
   const handleSubmit = (values: FormValues) =>
     onSubmit({
@@ -87,20 +113,14 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDele
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-base font-semibold">Aeropuerto</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder="Selecciona un aeropuerto" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {aeropuertos.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <AirportComboboxField
+                  airports={aeropuertos}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Busca por ciudad, código, nombre o país"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -125,9 +145,27 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDele
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-base font-semibold">Terminal</FormLabel>
-                <FormControl>
-                  <Input placeholder="Terminal 1" className="h-12 text-base" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value} disabled={!aeropuertoSeleccionado}>
+                  <FormControl>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue
+                        placeholder={aeropuertoSeleccionado ? 'Selecciona una terminal' : 'Elige primero un aeropuerto'}
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {terminales.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {aeropuertoSeleccionado && terminales.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Este aeropuerto todavía no tiene terminales creadas en /admin/terminales.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -186,7 +224,7 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDele
 const columns: AdminColumn[] = [
   { key: 'codigo', label: 'Código' },
   { key: 'aeropuerto_codigo', label: 'Aeropuerto' },
-  { key: 'terminal', label: 'Terminal' },
+  { key: 'terminal_nombre', label: 'Terminal' },
   { key: 'estado_display', label: 'Estado' },
 ]
 
@@ -214,7 +252,11 @@ function PuertaCard(row: AdminRecord, { onEdit, onDelete, canDelete }: AdminCard
       </button>
       <CardContent className="space-y-1 p-3">
         <p className="line-clamp-1 font-medium leading-tight">Puerta {codigo}</p>
-        <p className="line-clamp-1 text-sm text-muted-foreground">{String(row.terminal ?? '')}</p>
+        <p className="line-clamp-1 text-sm text-muted-foreground">
+          {row.terminal_codigo || row.terminal_nombre
+            ? `${String(row.terminal_codigo ?? '')} - ${String(row.terminal_nombre ?? '')}`
+            : 'Sin terminal asignada'}
+        </p>
         <div className="flex items-center justify-between pt-1">
           <Badge variant={estilo.badge}>{String(row.estado_display ?? estado)}</Badge>
           {canDelete && (

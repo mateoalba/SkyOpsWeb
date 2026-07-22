@@ -23,12 +23,14 @@ interface AirportComboboxFieldProps {
 }
 
 /**
- * Campo de Origen/Destino con autocompletar + foto: en vez de un
- * desplegable con el catálogo completo, deja escribir (ciudad, código o
- * nombre) y muestra sugerencias filtradas con una miniatura de la foto real
- * del aeropuerto — igual que en las tarjetas de vuelo. Al elegir una, esa
- * misma miniatura queda pegada al campo para reconocer el aeropuerto de un
- * vistazo en vez de solo leer el nombre completo.
+ * Campo de aeropuerto con autocompletar + foto: en vez de un desplegable con
+ * el catálogo completo, deja escribir (ciudad, código, nombre o país) y
+ * muestra sugerencias filtradas con una miniatura de la foto real del
+ * aeropuerto — igual que en las tarjetas de vuelo. Escribir un país entero
+ * (p. ej. "Ecuador") trae todos sus aeropuertos de una vez. Al elegir una,
+ * esa misma miniatura queda pegada al campo para reconocer el aeropuerto de
+ * un vistazo en vez de solo leer el nombre completo. Se usa tanto para
+ * Origen/Destino de Vuelos como para el Aeropuerto de Puertas.
  */
 export function AirportComboboxField({ airports, value, onChange, placeholder, disabled }: AirportComboboxFieldProps) {
   const selected = airports.find((a) => String(a.id) === value) ?? null
@@ -57,15 +59,19 @@ export function AirportComboboxField({ airports, value, onChange, placeholder, d
   }, [open, selected])
 
   const q = query.trim().toLowerCase()
+  // Busca por ciudad, código IATA, nombre del aeropuerto O país — así
+  // escribir "Ecuador" o "España" muestra de una vez todos los aeropuertos
+  // de ese país, no solo coincidencias exactas de ciudad/código.
   const suggestions = q
     ? airports
         .filter(
           (a) =>
             String(a.ciudad ?? '').toLowerCase().includes(q) ||
             String(a.codigo_iata ?? '').toLowerCase().includes(q) ||
-            String(a.nombre ?? '').toLowerCase().includes(q),
+            String(a.nombre ?? '').toLowerCase().includes(q) ||
+            String(a.pais ?? '').toLowerCase().includes(q),
         )
-        .slice(0, 8)
+        .slice(0, 12)
     : airports.slice(0, 8)
 
   return (
@@ -124,7 +130,10 @@ export function AirportComboboxField({ airports, value, onChange, placeholder, d
                     )}
                   </div>
                   <span className="flex-1">
-                    <span className="block font-medium">{String(airport.ciudad ?? '')}</span>
+                    <span className="block font-medium">
+                      {String(airport.ciudad ?? '')}
+                      {airport.pais ? <span className="font-normal text-muted-foreground"> · {String(airport.pais)}</span> : null}
+                    </span>
                     <span className="block text-xs text-muted-foreground">{String(airport.nombre ?? '')}</span>
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground">

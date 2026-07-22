@@ -1,5 +1,5 @@
 // src/presentation/components/admin/flight-seat-map.tsx
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/presentation/utils/cn'
 
 type ClaseAsiento = 'economica' | 'ejecutiva' | 'primera'
@@ -46,19 +46,74 @@ export function FlightSeatMap({ capacidad, primera, ejecutiva, onChangePrimera, 
     return 'economica'
   }
 
-  const toggleSeat = (codigo: string) => {
-    const actual = claseDe(codigo)
-    if (actual === modo) {
-      if (modo === 'primera') onChangePrimera(primera.filter((c) => c !== codigo))
-      else onChangeEjecutiva(ejecutiva.filter((c) => c !== codigo))
+  // Asigna un asiento suelto a la clase activa (sacándolo de la otra si
+  // hacía falta) o lo vacía a Económica — separado en dos funciones (en vez
+  // de un solo toggle) porque tanto el arrastre como "toda la fila" necesitan
+  // decidir UNA sola acción al empezar y aplicarla parejo a todos los
+  // asientos que toquen, no alternar asiento por asiento.
+  const assignSeat = (codigo: string) => {
+    if (modo === 'primera') {
+      if (!primeraSet.has(codigo)) onChangePrimera([...primera, codigo])
+      if (ejecutivaSet.has(codigo)) onChangeEjecutiva(ejecutiva.filter((c) => c !== codigo))
+    } else {
+      if (!ejecutivaSet.has(codigo)) onChangeEjecutiva([...ejecutiva, codigo])
+      if (primeraSet.has(codigo)) onChangePrimera(primera.filter((c) => c !== codigo))
+    }
+  }
+
+  const clearSeat = (codigo: string) => {
+    if (modo === 'primera') onChangePrimera(primera.filter((c) => c !== codigo))
+    else onChangeEjecutiva(ejecutiva.filter((c) => c !== codigo))
+  }
+
+  // Arrastrar el mouse pinta varios asientos de un tirón, en vez de tener
+  // que hacer clic uno por uno: el primer asiento tocado decide si el
+  // arrastre asigna o vacía (si ya era de la clase activa, arrastrar la
+  // "borra"; si no, arrastrar la asigna), y esa misma acción se repite en
+  // cada asiento que el mouse vaya tocando mientras esté apretado.
+  const [isPainting, setIsPainting] = useState(false)
+  const paintActionRef = useRef<'assign' | 'clear'>('assign')
+
+  useEffect(() => {
+    const detener = () => setIsPainting(false)
+    window.addEventListener('mouseup', detener)
+    return () => window.removeEventListener('mouseup', detener)
+  }, [])
+
+  const handleSeatMouseDown = (codigo: string) => {
+    const accion: 'assign' | 'clear' = claseDe(codigo) === modo ? 'clear' : 'assign'
+    paintActionRef.current = accion
+    setIsPainting(true)
+    if (accion === 'assign') assignSeat(codigo)
+    else clearSeat(codigo)
+  }
+
+  const handleSeatMouseEnter = (codigo: string) => {
+    if (!isPainting) return
+    if (paintActionRef.current === 'assign') assignSeat(codigo)
+    else clearSeat(codigo)
+  }
+
+  // Clic en el número de fila: asigna toda la fila a la clase activa de una
+  // sola vez (o la vacía si ya era toda de esa clase) — mucho más rápido que
+  // ir asiento por asiento cuando una fila entera es, por ejemplo, Primera.
+  const toggleRow = (filaCodigos: string[]) => {
+    const todosEnModo = filaCodigos.every((c) => claseDe(c) === modo)
+    if (todosEnModo) {
+      if (modo === 'primera') onChangePrimera(primera.filter((c) => !filaCodigos.includes(c)))
+      else onChangeEjecutiva(ejecutiva.filter((c) => !filaCodigos.includes(c)))
       return
     }
     if (modo === 'primera') {
-      onChangePrimera([...primera, codigo])
-      if (ejecutivaSet.has(codigo)) onChangeEjecutiva(ejecutiva.filter((c) => c !== codigo))
+      onChangePrimera(Array.from(new Set([...primera, ...filaCodigos])))
+      if (ejecutiva.some((c) => filaCodigos.includes(c))) {
+        onChangeEjecutiva(ejecutiva.filter((c) => !filaCodigos.includes(c)))
+      }
     } else {
-      onChangeEjecutiva([...ejecutiva, codigo])
-      if (primeraSet.has(codigo)) onChangePrimera(primera.filter((c) => c !== codigo))
+      onChangeEjecutiva(Array.from(new Set([...ejecutiva, ...filaCodigos])))
+      if (primera.some((c) => filaCodigos.includes(c))) {
+        onChangePrimera(primera.filter((c) => !filaCodigos.includes(c)))
+      }
     }
   }
 
@@ -108,14 +163,15 @@ export function FlightSeatMap({ capacidad, primera, ejecutiva, onChangePrimera, 
         >
           ● Ejecutiva
         </button>
-        <p className="ml-auto text-xs text-muted-foreground">
-          Clic en un asiento para asignarlo a {modo === 'primera' ? 'Primera clase' : 'Ejecutiva'}.
+        <p className="ml-auto max-w-xs text-right text-xs text-muted-foreground">
+          Arrastrá el mouse para pintar varios asientos, o hacé clic en el número de fila para asignarla completa a{' '}
+          {modo === 'primera' ? 'Primera clase' : 'Ejecutiva'}.
         </p>
       </div>
 
       <div
         className={cn(
-          'max-h-[28rem] gap-x-8 gap-y-1.5 overflow-y-auto pr-1',
+          'max-h-[28rem] select-none gap-x-8 gap-y-1.5 overflow-y-auto pr-1',
           grupos === 1 && 'grid grid-cols-1',
           grupos === 2 && 'grid grid-cols-2',
           grupos === 3 && 'grid grid-cols-3',
@@ -125,14 +181,23 @@ export function FlightSeatMap({ capacidad, primera, ejecutiva, onChangePrimera, 
           <div key={b} className="space-y-1.5">
             {bloque.filas.map((fila, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <span className="w-6 shrink-0 text-xs text-muted-foreground">{bloque.offset + i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleRow(fila)}
+                  title="Asignar/quitar toda la fila"
+                  className="w-6 shrink-0 rounded text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground hover:font-semibold"
+                >
+                  {bloque.offset + i + 1}
+                </button>
                 {fila.map((codigo) => {
                   const clase = claseDe(codigo)
                   return (
                     <button
                       key={codigo}
                       type="button"
-                      onClick={() => toggleSeat(codigo)}
+                      onMouseDown={() => handleSeatMouseDown(codigo)}
+                      onMouseEnter={() => handleSeatMouseEnter(codigo)}
+                      onDragStart={(e) => e.preventDefault()}
                       title={codigo}
                       className={cn(
                         'flex h-9 flex-1 items-center justify-center rounded-md border text-[11px] font-semibold transition-colors',
