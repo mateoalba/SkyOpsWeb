@@ -15,6 +15,17 @@ export function formatFlightDateTime(iso: string): string {
 }
 
 /**
+ * Formatea una fecha/hora ISO a solo la hora.
+ * Ejemplo: "2026-07-15T08:15:00Z" → "8:15 AM"
+ */
+export function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
+
+/**
  * Formatea una fecha ISO a formato legible (sin hora).
  * Ejemplo: "2026-07-15" → "Jul 15, 2026"
  */

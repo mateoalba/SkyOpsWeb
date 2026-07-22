@@ -16,6 +16,11 @@ export interface SelectOption {
  */
 export function useAdminOptions(endpoint: string, toLabel: (row: AdminRecord) => string) {
   const [options, setOptions] = useState<SelectOption[]>([])
+  // Filas crudas (sin mapear a {value,label}), para cuando quien llama
+  // necesita además filtrar por alguna FK del propio row — p. ej. mostrar
+  // solo las aeronaves de la aerolínea ya elegida en el formulario de Vuelo,
+  // en vez de listar las de todas las aerolíneas.
+  const [rows, setRows] = useState<AdminRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -26,9 +31,13 @@ export function useAdminOptions(endpoint: string, toLabel: (row: AdminRecord) =>
       .then((result) => {
         if (cancelled) return
         setOptions(result.resultados.map((row) => ({ value: String(row.id), label: toLabel(row) })))
+        setRows(result.resultados)
       })
       .catch(() => {
-        if (!cancelled) setOptions([])
+        if (!cancelled) {
+          setOptions([])
+          setRows([])
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -39,5 +48,5 @@ export function useAdminOptions(endpoint: string, toLabel: (row: AdminRecord) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint])
 
-  return { options, isLoading }
+  return { options, rows, isLoading }
 }

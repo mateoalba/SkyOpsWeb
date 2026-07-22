@@ -4,11 +4,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { DoorClosed, DoorOpen, Trash2, Wrench } from 'lucide-react'
+
 import type { AdminRecord } from '@/domain/ports/admin-resource-repository.port'
 import { useAdminOptions } from '@/presentation/hooks/use-admin-options'
-import { AdminCrudPage, type AdminColumn, type AdminFormProps } from '@/presentation/pages/admin/AdminCrudPage'
+import { AdminCrudPage, type AdminCardActions, type AdminColumn, type AdminFormProps } from '@/presentation/pages/admin/AdminCrudPage'
 import { Button } from '@/presentation/components/ui/button'
 import { Input } from '@/presentation/components/ui/input'
+import { Card, CardContent } from '@/presentation/components/ui/card'
+import { Badge } from '@/presentation/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -23,6 +27,15 @@ const ESTADO_OPTIONS = [
   { value: 'ocupada', label: 'Ocupada' },
   { value: 'mantenimiento', label: 'En mantenimiento' },
 ]
+
+// Sin foto (una puerta no tiene una imagen que la identifique como sí la
+// tiene un aeropuerto o una aeronave), así que el estado se comunica con un
+// bloque de color + ícono en vez de un slot de imagen vacío.
+const ESTADO_STYLE: Record<string, { icon: typeof DoorOpen; block: string; badge: 'default' | 'secondary' | 'destructive' }> = {
+  disponible: { icon: DoorOpen, block: 'bg-emerald-500/15 text-emerald-500', badge: 'default' },
+  ocupada: { icon: DoorClosed, block: 'bg-blue-500/15 text-blue-500', badge: 'secondary' },
+  mantenimiento: { icon: Wrench, block: 'bg-amber-500/15 text-amber-500', badge: 'destructive' },
+}
 
 const schema = z.object({
   aeropuerto: z.string().min(1, 'Selecciona un aeropuerto.'),
@@ -44,7 +57,7 @@ function rowToForm(row: AdminRecord): FormValues {
   }
 }
 
-function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: AdminFormProps) {
+function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error, onDelete }: AdminFormProps) {
   const { options: aeropuertos } = useAdminOptions('/aeropuertos/', (r) => `${r.nombre} (${r.codigo_iata})`)
 
   const form = useForm<FormValues>({
@@ -67,16 +80,16 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: Admi
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="aeropuerto"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Aeropuerto</FormLabel>
+              <FormLabel className="text-base font-semibold">Aeropuerto</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder="Selecciona un aeropuerto" />
                   </SelectTrigger>
                 </FormControl>
@@ -98,9 +111,9 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: Admi
             name="codigo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Código</FormLabel>
+                <FormLabel className="text-base font-semibold">Código</FormLabel>
                 <FormControl>
-                  <Input placeholder="G12" {...field} />
+                  <Input placeholder="G12" className="h-12 text-base" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -111,9 +124,9 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: Admi
             name="terminal"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Terminal</FormLabel>
+                <FormLabel className="text-base font-semibold">Terminal</FormLabel>
                 <FormControl>
-                  <Input placeholder="Terminal 1" {...field} />
+                  <Input placeholder="Terminal 1" className="h-12 text-base" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,10 +138,10 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: Admi
           name="estado"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Estado</FormLabel>
+              <FormLabel className="text-base font-semibold">Estado</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue />
                   </SelectTrigger>
                 </FormControl>
@@ -147,13 +160,23 @@ function PuertaForm({ initialValues, onSubmit, onCancel, isSaving, error }: Admi
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSaving}>
-            {isSaving ? 'Guardando...' : 'Guardar'}
-          </Button>
+        <div className="flex items-center justify-between gap-2 border-t pt-4">
+          {onDelete ? (
+            <Button type="button" variant="destructive" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+              Eliminar
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
@@ -167,6 +190,44 @@ const columns: AdminColumn[] = [
   { key: 'estado_display', label: 'Estado' },
 ]
 
+/**
+ * Tarjeta de puerta (4 por fila, igual que Aerolíneas/Aeronaves) — sin foto,
+ * ya que una puerta de embarque no tiene una imagen propia que mostrar. En
+ * su lugar el bloque superior usa un color + ícono según el estado
+ * (disponible/ocupada/mantenimiento) para que se identifique de un vistazo.
+ */
+function PuertaCard(row: AdminRecord, { onEdit, onDelete, canDelete }: AdminCardActions) {
+  const codigo = String(row.codigo ?? '')
+  const estado = String(row.estado ?? 'disponible')
+  const estilo = ESTADO_STYLE[estado] ?? ESTADO_STYLE.disponible
+  const Icono = estilo.icon
+
+  return (
+    <Card className="overflow-hidden">
+      <button type="button" onClick={onEdit} aria-label={`Editar puerta ${codigo}`} className="relative block w-full">
+        <div className={`flex h-24 w-full items-center justify-center ${estilo.block}`}>
+          <Icono className="h-10 w-10" />
+        </div>
+        <Badge variant="secondary" className="absolute right-2 top-2 shadow">
+          {String(row.aeropuerto_codigo ?? '')}
+        </Badge>
+      </button>
+      <CardContent className="space-y-1 p-3">
+        <p className="line-clamp-1 font-medium leading-tight">Puerta {codigo}</p>
+        <p className="line-clamp-1 text-sm text-muted-foreground">{String(row.terminal ?? '')}</p>
+        <div className="flex items-center justify-between pt-1">
+          <Badge variant={estilo.badge}>{String(row.estado_display ?? estado)}</Badge>
+          {canDelete && (
+            <Button variant="ghost" size="icon" onClick={onDelete} aria-label="Eliminar">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function PuertasPage() {
   return (
     <AdminCrudPage
@@ -175,6 +236,8 @@ export default function PuertasPage() {
       columns={columns}
       FormComponent={PuertaForm}
       itemLabel="puertas"
+      renderCard={PuertaCard}
+      cardGridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
     />
   )
 }

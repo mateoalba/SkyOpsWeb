@@ -26,6 +26,27 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: 'ES', name: 'España', flag: '🇪🇸', currency: 'EUR' },
 ]
 
+// Ciudad(es) "principal(es)" por país, en orden de preferencia — para que al
+// llegar a Ofertas desde/Vuelos el origen por defecto sea la ciudad más
+// obvia de ese país (p. ej. Quito en Ecuador) en vez de simplemente la
+// primera en orden alfabético del catálogo (que podría ser Baltra). Si
+// ninguna de estas ciudades existe todavía en el catálogo real, se cae al
+// primer aeropuerto de ese país que haya, sin romper nada.
+export const COUNTRY_PRIMARY_CITIES: Record<string, string[]> = {
+  EC: ['Quito', 'Guayaquil'],
+  AR: ['Buenos Aires'],
+  CO: ['Bogotá'],
+  CR: ['San José'],
+  SV: ['San Salvador'],
+  MX: ['Ciudad de México'],
+  PA: ['Ciudad de Panamá'],
+  PE: ['Lima'],
+  CL: ['Santiago'],
+  BR: ['São Paulo'],
+  US: ['Nueva York', 'Miami', 'Los Ángeles'],
+  ES: ['Madrid'],
+}
+
 export interface LanguageOption {
   code: string
   name: string

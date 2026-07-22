@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom'
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
 
 import { useAuthStore } from '@/presentation/store/auth.store'
-import { useCountryStore, COUNTRY_OPTIONS as NAVBAR_COUNTRY_OPTIONS } from '@/presentation/store/country.store'
+import {
+  useCountryStore,
+  COUNTRY_OPTIONS as NAVBAR_COUNTRY_OPTIONS,
+  COUNTRY_PRIMARY_CITIES,
+} from '@/presentation/store/country.store'
 import { getFlightsUseCase } from '@/infrastructure/factories/flight.factory'
 import { listAirportsUseCase } from '@/infrastructure/factories/airport.factory'
 import type { Flight } from '@/domain/entities/flight.entity'
@@ -165,6 +169,23 @@ function DestinationListCard({
   )
 }
 
+/**
+ * Elige el aeropuerto "principal" de un país dentro del catálogo real: la
+ * primera ciudad de COUNTRY_PRIMARY_CITIES que exista ahí (p. ej. Quito
+ * antes que Baltra en Ecuador), o si ninguna existe todavía, el primer
+ * aeropuerto de ese país que haya (nunca deja el selector sin nada si el
+ * país sí tiene aeropuertos, solo si no tiene ninguno todavía).
+ */
+function pickPrimaryAirport(countryCode: string | null, countryName: string | null, airports: Airport[]): Airport | null {
+  if (!countryName) return null
+  const preferred = countryCode ? COUNTRY_PRIMARY_CITIES[countryCode] ?? [] : []
+  for (const city of preferred) {
+    const match = airports.find((a) => a.pais === countryName && a.ciudad === city)
+    if (match) return match
+  }
+  return airports.find((a) => a.pais === countryName) ?? null
+}
+
 interface DestinationDeal {
   codigo: string
   ciudad: string
@@ -225,9 +246,10 @@ export function DestinationOffersSection({
 
   // Catálogo real de aeropuertos (una sola vez) + tasas de cambio en vivo
   // (una sola vez, cacheadas a nivel de módulo en currency.ts). El origen
-  // por defecto prioriza un aeropuerto del país ya elegido en el navbar
-  // (para que "Ofertas desde" arranque coherente con ese país) antes de
-  // caer en Bogotá o el primero del catálogo.
+  // por defecto prioriza la ciudad "principal" del país ya elegido en el
+  // navbar (p. ej. Quito en Ecuador, ver COUNTRY_PRIMARY_CITIES) para que
+  // "Ofertas desde" arranque en la ciudad obvia de ese país, en vez de
+  // simplemente la primera en orden alfabético del catálogo.
   useEffect(() => {
     listAirportsUseCase
       .execute()
@@ -237,7 +259,7 @@ export function DestinationOffersSection({
           (prev) =>
             prev ??
             initialOrigenCodigo ??
-            result.find((a) => a.pais === selectedCountryName)?.codigoIata ??
+            pickPrimaryAirport(countryCode, selectedCountryName, result)?.codigoIata ??
             result.find((a) => a.codigoIata === 'BOG')?.codigoIata ??
             result[0]?.codigoIata ??
             null,
@@ -251,9 +273,9 @@ export function DestinationOffersSection({
 
   // Cuando el visitante cambia de país en el selector del navbar (no en el
   // primer render, ese caso ya lo cubre el efecto de arriba), re-ubicamos
-  // "Ofertas desde" en un aeropuerto de ese país si el origen actual ya no
-  // pertenece a él — así seleccionar Argentina, por ejemplo, mueve el origen
-  // a un aeropuerto argentino en vez de dejarlo en uno de otro país.
+  // "Ofertas desde" en la ciudad principal de ese país si el origen actual
+  // ya no pertenece a él — así seleccionar Argentina, por ejemplo, mueve el
+  // origen a Buenos Aires en vez de dejarlo en uno de otro país.
   const isFirstCountrySync = useRef(true)
   useEffect(() => {
     if (isFirstCountrySync.current) {
@@ -265,7 +287,7 @@ export function DestinationOffersSection({
     setOrigenCodigo((prev) => {
       const prevAirport = airports.find((a) => a.codigoIata === prev)
       if (prevAirport?.pais === selectedCountryName) return prev
-      const match = airports.find((a) => a.pais === selectedCountryName)
+      const match = pickPrimaryAirport(countryCode, selectedCountryName, airports)
       return match?.codigoIata ?? prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps

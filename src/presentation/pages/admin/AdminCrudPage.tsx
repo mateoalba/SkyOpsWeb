@@ -50,6 +50,15 @@ export interface AdminFormProps {
   onCancel: () => void
   isSaving: boolean
   error: string | null
+  /**
+   * Solo viene definido cuando se está editando (no al crear) Y el usuario
+   * puede eliminar (esStaff). Llamarlo cierra el modal de edición y abre la
+   * misma confirmación de "¿Eliminar este registro?" que usa el ícono de
+   * basurero — así un formulario puede ofrecer un botón "Eliminar" propio
+   * sin duplicar la lógica de borrado. Los formularios que no lo necesiten
+   * simplemente lo ignoran (prop opcional, no rompe nada existente).
+   */
+  onDelete?: () => void
 }
 
 export interface AdminCardActions {
@@ -74,6 +83,11 @@ interface AdminCrudPageProps {
   renderCard?: (row: AdminRecord, actions: AdminCardActions) => ReactNode
   /** Ancho del modal de crear/editar. Por defecto `sm:max-w-lg`; los formularios más anchos (con panel de foto) pueden pasar algo como `sm:max-w-3xl`. */
   dialogClassName?: string
+  /** Columnas de la grilla cuando se usa `renderCard`. Por defecto 4 por
+   * fila en desktop (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`); recursos
+   * con tarjetas más anchas (p. ej. Vuelos, con fotos a los lados) pueden
+   * pedir solo 2 por fila con `"grid-cols-1 sm:grid-cols-2"`. */
+  cardGridClassName?: string
 }
 
 function defaultCell(value: unknown): ReactNode {
@@ -91,6 +105,7 @@ export function AdminCrudPage({
   itemLabel = 'registros',
   renderCard,
   dialogClassName,
+  cardGridClassName,
 }: AdminCrudPageProps) {
   // Solo Admin (esStaff) puede eliminar — Operador puede leer, crear y
   // editar (permissions.EsOperador en el backend rechaza su DELETE con
@@ -191,7 +206,8 @@ export function AdminCrudPage({
   }
 
   return (
-    <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
+    <section className="px-4 py-10 sm:px-6">
+      <div className="mx-auto w-full max-w-[1280px]">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2">
@@ -251,7 +267,7 @@ export function AdminCrudPage({
       {!isLoading && !error && rows.length > 0 && (
         <>
           {renderCard ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={cn('grid gap-4', cardGridClassName ?? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4')}>
               {rows.map((row, i) => (
                 <div key={(row.id as string) ?? i}>
                   {renderCard(row, {
@@ -327,6 +343,14 @@ export function AdminCrudPage({
             onCancel={() => setDialogOpen(false)}
             isSaving={isSaving}
             error={formError}
+            onDelete={
+              editingRow && puedeEliminar
+                ? () => {
+                    setDialogOpen(false)
+                    setRowToDelete(editingRow)
+                  }
+                : undefined
+            }
           />
         </DialogContent>
       </Dialog>
@@ -347,6 +371,7 @@ export function AdminCrudPage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </section>
   )
 }
