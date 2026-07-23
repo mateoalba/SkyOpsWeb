@@ -35,6 +35,21 @@ interface RawRegistroResponse {
   refresh: string
 }
 
+interface RawUsuarioGoogle {
+  id: number
+  username: string
+  email: string
+  es_staff: boolean
+}
+
+interface RawGoogleLoginResponse {
+  mensaje: string
+  creado: boolean
+  usuario: RawUsuarioGoogle
+  access: string
+  refresh: string
+}
+
 /**
  * Adaptador concreto del port `AuthRepository`, implementado con Axios
  * contra /api/auth/*. Esta es la única capa que conoce la forma real
@@ -96,6 +111,29 @@ export class AuthRepositoryAxiosAdapter implements AuthRepository {
         nombre: payload.firstName,
         apellido: payload.lastName,
         esStaff: false,
+        esOperador: false,
+      }
+      return { access: data.access, refresh: data.refresh, user }
+    } catch (error) {
+      throw parseApiError(error)
+    }
+  }
+
+  async loginWithGoogle(idToken: string): Promise<AuthSession> {
+    try {
+      const { data } = await this.http.post<RawGoogleLoginResponse>('/auth/google/', {
+        id_token: idToken,
+      })
+      // El backend no repite nombre/apellido en esta respuesta (a diferencia
+      // de /login/): quedan vacíos y la UI cae de vuelta al username, igual
+      // que ya hace AppHeader.
+      const user: AuthUser = {
+        id: data.usuario.id,
+        username: data.usuario.username,
+        email: data.usuario.email,
+        nombre: '',
+        apellido: '',
+        esStaff: data.usuario.es_staff,
         esOperador: false,
       }
       return { access: data.access, refresh: data.refresh, user }

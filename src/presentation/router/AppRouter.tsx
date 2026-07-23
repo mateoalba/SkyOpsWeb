@@ -7,10 +7,20 @@ import FlightDetailPage from '../pages/flights/FlightDetailPage'
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
 import ProfilePage from '../pages/profile/ProfilePage'
+import AboutPage from '../pages/institutional/AboutPage'
+import HelpPage from '../pages/institutional/HelpPage'
+import PressPage from '../pages/institutional/PressPage'
+import CareersPage from '../pages/institutional/CareersPage'
+import GithubPage from '../pages/institutional/GithubPage'
+import TerminosPage from '../pages/institutional/TerminosPage'
+import PrivacidadPage from '../pages/institutional/PrivacidadPage'
+import CookiesPage from '../pages/institutional/CookiesPage'
+import TransportePage from '../pages/institutional/TransportePage'
 import MyReservationsPage from '../pages/reservations/MyReservationsPage'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminResourceListPage from '../pages/admin/AdminResourceListPage'
 import BannersPage from '../pages/admin/BannersPage'
+import ContenidoInstitucionalPage from '../pages/admin/ContenidoInstitucionalPage'
 import TerminalesPage from '../pages/admin/resources/TerminalesPage'
 import PistasPage from '../pages/admin/resources/PistasPage'
 import AsignacionesPistaPage from '../pages/admin/resources/AsignacionesPistaPage'
@@ -58,6 +68,19 @@ export default function AppRouter() {
             <Route path="/airlines" element={<PlaceholderPage title="Aerolíneas" />} />
             <Route path="/passengers" element={<PlaceholderPage title="Pasajeros" />} />
             <Route path="/airports" element={<PlaceholderPage title="Aeropuertos" />} />
+
+            {/* Compañía */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/press" element={<PressPage />} />
+            <Route path="/careers" element={<CareersPage />} />
+            <Route path="/github" element={<GithubPage />} />
+
+            {/* Información legal */}
+            <Route path="/legal/terminos" element={<TerminosPage />} />
+            <Route path="/legal/privacidad" element={<PrivacidadPage />} />
+            <Route path="/legal/cookies" element={<CookiesPage />} />
+            <Route path="/legal/transporte" element={<TransportePage />} />
 
             {/* Requieren solo sesión iniciada (cualquier usuario, no admin) */}
             <Route
@@ -117,6 +140,10 @@ export default function AppRouter() {
             <Route path="/admin/mantenimientos" element={<RequireAdmin><MantenimientosPage /></RequireAdmin>} />
             <Route path="/admin/certificaciones" element={<RequireAdmin><CertificacionesPage /></RequireAdmin>} />
             <Route path="/admin/banners" element={<RequireAdmin><BannersPage /></RequireAdmin>} />
+            <Route
+              path="/admin/contenido-institucional"
+              element={<RequireAdmin><ContenidoInstitucionalPage /></RequireAdmin>}
+            />
 
             {/* Admin: el resto de las tablas, en modo solo lectura por ahora
                 (perfiles-usuario, sesiones-usuario, audit-log) — también solo staff */}

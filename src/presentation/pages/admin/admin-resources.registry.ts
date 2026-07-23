@@ -25,6 +25,7 @@ import {
   Image,
   LayoutGrid,
   Radar,
+  FileText,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -142,6 +143,12 @@ export const ADMIN_RESOURCE_SECTIONS: AdminResourceSection[] = [
         icon: Award,
       },
       { slug: 'banners', title: 'Banners Promocionales', endpoint: '/banners/', icon: Image },
+      {
+        slug: 'contenido-institucional',
+        title: 'Contenido Institucional',
+        endpoint: '/contenido-institucional/',
+        icon: FileText,
+      },
     ],
   },
 ]

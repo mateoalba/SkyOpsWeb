@@ -1,0 +1,19 @@
+// src/domain/ports/institutional-content-repository.port.ts
+import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
+
+export interface UpdateInstitutionalContentPayload {
+  titulo?: string
+  texto?: string
+  items?: InstitutionalContentItem[]
+}
+
+/**
+ * Puerto (contrato) del contenido institucional editable. Mismo espíritu
+ * que BannerRepository: la infraestructura lo implementa contra
+ * /api/contenido-institucional/*, application/presentation solo conocen
+ * este contrato.
+ */
+export interface InstitutionalContentRepository {
+  listInstitutionalContent(): Promise<InstitutionalContent[]>
+  updateInstitutionalContent(clave: string, payload: UpdateInstitutionalContentPayload): Promise<InstitutionalContent>
+}

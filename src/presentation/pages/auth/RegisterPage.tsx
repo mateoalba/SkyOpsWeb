@@ -1,5 +1,5 @@
 // src/presentation/pages/auth/RegisterPage.tsx
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +11,8 @@ import { getBannerUseCase } from '@/infrastructure/factories/banner.factory'
 import { useAuthStore } from '@/presentation/store/auth.store'
 import { TIPO_DOCUMENTO_LABELS, GENERO_LABELS } from '@/domain/enums/profile-choices.enum'
 import type { TipoDocumento, Genero } from '@/domain/enums/profile-choices.enum'
+import { GoogleSignInButton } from '@/presentation/components/auth/google-sign-in-button'
+import { BirthdatePicker } from '@/presentation/components/auth/birthdate-picker'
 import { Button } from '@/presentation/components/ui/button'
 import { Input } from '@/presentation/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/presentation/components/ui/card'
@@ -29,6 +31,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/presentation/components/ui/form'
+
+const glassInputClass =
+  'rounded-full border-black/10 bg-black/5 px-4 backdrop-blur-sm placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 dark:border-white/15 dark:bg-white/5'
+const glassTriggerClass =
+  'rounded-full border-black/10 bg-black/5 px-4 backdrop-blur-sm focus:ring-2 focus:ring-primary/40 dark:border-white/15 dark:bg-white/5'
 
 const NONE_VALUE = '__none__'
 
@@ -55,7 +62,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { register, isLoading, error, clearError } = useAuthStore()
+  const { register, loginWithGoogle, isLoading, error, clearError } = useAuthStore()
   const [banner, setBanner] = useState<PromoBanner | null>(null)
 
   useEffect(() => {
@@ -97,6 +104,15 @@ export default function RegisterPage() {
     if (ok) navigate('/')
   }
 
+  const handleGoogleCredential = useCallback(
+    async (idToken: string) => {
+      clearError()
+      const ok = await loginWithGoogle(idToken)
+      if (ok) navigate('/')
+    },
+    [clearError, loginWithGoogle, navigate],
+  )
+
   return (
     <div className="relative isolate flex min-h-[70vh] items-center justify-center overflow-hidden px-4 py-10 sm:px-6">
       {banner?.imagenUrl && (
@@ -111,9 +127,9 @@ export default function RegisterPage() {
         </>
       )}
 
-      <Card className="w-full max-w-[1280px] border-white/10 bg-card/70 backdrop-blur-xl">
+      <Card className="w-full max-w-[1280px] rounded-[28px] border border-white/30 bg-card/60 shadow-[0_8px_40px_-8px_rgba(0,0,0,0.55)] backdrop-blur-2xl dark:border-white/10">
         <CardHeader className="items-center text-center">
-          <PlaneTakeoff className="mb-2 h-8 w-8" />
+          <PlaneTakeoff className="mb-2 h-8 w-8 text-primary" />
           <CardTitle>Crear cuenta</CardTitle>
           <CardDescription>
             Completa tus datos para reservar y hacer seguimiento de tus vuelos.
@@ -130,7 +146,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Nombre</FormLabel>
                       <FormControl>
-                        <Input autoComplete="given-name" {...field} />
+                        <Input autoComplete="given-name" className={glassInputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -143,7 +159,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Apellido</FormLabel>
                       <FormControl>
-                        <Input autoComplete="family-name" {...field} />
+                        <Input autoComplete="family-name" className={glassInputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -156,7 +172,13 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Correo electrónico</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="tu@correo.com" autoComplete="email" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="tu@correo.com"
+                          autoComplete="email"
+                          className={glassInputClass}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -170,7 +192,12 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Contraseña</FormLabel>
                       <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          className={glassInputClass}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +210,12 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Confirmar contraseña</FormLabel>
                       <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          className={glassInputClass}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -196,7 +228,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Teléfono</FormLabel>
                       <FormControl>
-                        <Input autoComplete="tel" {...field} />
+                        <Input autoComplete="tel" className={glassInputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -210,7 +242,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>País</FormLabel>
                       <FormControl>
-                        <Input autoComplete="country-name" {...field} />
+                        <Input autoComplete="country-name" className={glassInputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -224,7 +256,7 @@ export default function RegisterPage() {
                       <FormLabel>Tipo de documento</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className={glassTriggerClass}>
                             <SelectValue placeholder="Selecciona" />
                           </SelectTrigger>
                         </FormControl>
@@ -247,7 +279,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Número de documento</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input className={glassInputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -261,7 +293,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Fecha de nacimiento</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <BirthdatePicker value={field.value} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -275,7 +307,7 @@ export default function RegisterPage() {
                       <FormLabel>Género</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className={glassTriggerClass}>
                             <SelectValue placeholder="Selecciona" />
                           </SelectTrigger>
                         </FormControl>
@@ -293,13 +325,29 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {error && <p className="text-sm text-destructive">{error.message}</p>}
-
-              <Button type="submit" className="w-full sm:mx-auto sm:block sm:w-64" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="mx-auto block w-full max-w-sm rounded-full shadow-lg shadow-primary/25 dark:shadow-primary/40"
+                disabled={isLoading}
+              >
                 {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
               </Button>
             </form>
           </Form>
+
+          {error && <p className="mt-3 text-center text-sm text-destructive">{error.message}</p>}
+
+          <div className="mx-auto mt-5 max-w-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-foreground/15" />
+              <span className="text-xs text-muted-foreground">o continúa con</span>
+              <div className="h-px flex-1 bg-foreground/15" />
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <GoogleSignInButton onCredential={handleGoogleCredential} disabled={isLoading} />
+            </div>
+          </div>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{' '}

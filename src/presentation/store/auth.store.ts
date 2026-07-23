@@ -5,7 +5,12 @@ import type { LoginDto } from '@/application/dtos/login.dto'
 import type { RegisterDto } from '@/application/dtos/register.dto'
 import { ApiException } from '@/domain/exceptions/api-exception'
 import { localTokenStorage } from '@/infrastructure/storage/local-token-storage'
-import { loginUseCase, registerUseCase, logoutUseCase } from '@/infrastructure/factories/auth.factory'
+import {
+  loginUseCase,
+  registerUseCase,
+  googleLoginUseCase,
+  logoutUseCase,
+} from '@/infrastructure/factories/auth.factory'
 
 interface AuthState {
   user: AuthUser | null
@@ -14,6 +19,7 @@ interface AuthState {
   error: ApiException | null
   login: (dto: LoginDto) => Promise<boolean>
   register: (dto: RegisterDto) => Promise<boolean>
+  loginWithGoogle: (idToken: string) => Promise<boolean>
   logout: () => Promise<void>
   clearError: () => void
 }
@@ -48,6 +54,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const session = await registerUseCase.execute(dto)
+      localTokenStorage.setTokens(session.access, session.refresh)
+      localTokenStorage.setUser(session.user)
+      set({ user: session.user, isAuthenticated: true, isLoading: false })
+      return true
+    } catch (error) {
+      const apiError = error instanceof ApiException ? error : new ApiException('Ocurrió un error inesperado.')
+      set({ error: apiError, isLoading: false })
+      return false
+    }
+  },
+
+  loginWithGoogle: async (idToken) => {
+    set({ isLoading: true, error: null })
+    try {
+      const session = await googleLoginUseCase.execute(idToken)
       localTokenStorage.setTokens(session.access, session.refresh)
       localTokenStorage.setUser(session.user)
       set({ user: session.user, isAuthenticated: true, isLoading: false })

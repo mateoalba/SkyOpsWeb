@@ -16,5 +16,6 @@ export interface AuthSession {
 export interface AuthRepository {
   login(credentials: LoginDto): Promise<AuthSession>
   register(payload: RegisterDto): Promise<AuthSession>
+  loginWithGoogle(idToken: string): Promise<AuthSession>
   logout(refreshToken: string): Promise<void>
 }
