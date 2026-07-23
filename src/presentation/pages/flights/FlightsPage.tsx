@@ -204,7 +204,7 @@ export default function FlightsPage() {
           </div>
         )}
 
-        <DestinationOffersSection extraLimit={Infinity} initialOrigenCodigo={origen || null} />
+        <DestinationOffersSection extraLimit={8} paginated initialOrigenCodigo={origen || null} />
       </div>
     </section>
   )

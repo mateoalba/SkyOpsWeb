@@ -97,3 +97,21 @@
     color-scheme: dark;
   }
 }
+
+@layer utilities {
+  /* Carrusel infinito de "Ofertas desde": la fila de tarjetas se duplica una
+     vez (ver destination-offers-section.tsx) y esta animación desliza
+     exactamente la mitad del ancho total, así el salto de vuelta a 0% cae
+     sobre una copia idéntica y el loop se ve continuo, sin corte visible. */
+  @keyframes marquee-left {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-marquee {
+    animation: marquee-left var(--marquee-duration, 28s) linear infinite;
+  }
+}

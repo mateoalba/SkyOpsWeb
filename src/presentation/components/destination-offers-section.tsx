@@ -1,5 +1,5 @@
 // src/presentation/components/destination-offers-section.tsx
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -14,6 +14,7 @@ import { listAirportsUseCase } from '@/infrastructure/factories/airport.factory'
 import type { Flight } from '@/domain/entities/flight.entity'
 import type { Airport } from '@/domain/entities/airport.entity'
 import { Skeleton } from '@/presentation/components/ui/skeleton'
+import { Button } from '@/presentation/components/ui/button'
 import { formatPrice } from '@/presentation/utils/formatters'
 import { fetchExchangeRates, formatLocalAmount } from '@/presentation/utils/currency'
 import quitoImage from '@/assets/destinations/Quito.webp'
@@ -196,15 +197,51 @@ interface DestinationDeal {
 
 interface DestinationOffersSectionProps {
   className?: string
-  /** Cuántos destinos extra (además de los 3 principales) mostrar en la
-   * fila compacta de abajo. Pasar `Infinity` para mostrar todos los
-   * destinos disponibles (usado en /flights); el Home usa 4 (2x2) para
-   * que la sección no crezca demasiado en la portada. */
+  /** Cuántos destinos extra (además de los principales) mostrar en la fila
+   * compacta de abajo. En modo `paginated` es el tamaño de cada tanda (8 en
+   * /flights); si no, es un corte fijo sin botón (4 en el Home, 2x2). */
   extraLimit?: number
+  /** Si es `true`, la fila compacta de abajo empieza mostrando solo
+   * `extraLimit` destinos y agrega un botón "Ver más" que revela otra tanda
+   * del mismo tamaño cada vez (usado en /flights). Si es `false` (default),
+   * se corta en `extraLimit` sin botón, como ya hacía el Home. */
+  paginated?: boolean
   /** Código IATA de origen con el que arranca el selector "Ofertas desde"
    * (p. ej. viniendo de un link `?origen=UIO`). Si no se pasa, se usa BOG
    * o el primer aeropuerto disponible, igual que antes. */
   initialOrigenCodigo?: string | null
+}
+
+/**
+ * Carrusel infinito: la fila de tarjetas se duplica una sola vez y se anima
+ * con `animate-marquee` (ver index.css), que desliza el 50% del ancho total
+ * — como la segunda mitad es idéntica a la primera, el loop no se nota. Se
+ * pausa al pasar el mouse para poder leer o hacer clic en una tarjeta sin
+ * que se mueva. `itemWidthClass` fija el ancho de cada tarjeta (deben ser
+ * anchos fijos, no porcentuales, para que la duplicación funcione).
+ */
+function MarqueeRow({ children, itemWidthClass }: { children: ReactNode[]; itemWidthClass: string }) {
+  if (children.length === 0) return null
+  // El truco del loop sin corte: la pista completa son DOS mitades
+  // idénticas, y la animación desliza exactamente -50% (una mitad) — así el
+  // salto de vuelta a 0% cae sobre una copia igual. Con pocas tarjetas una
+  // sola mitad se vería muy corta/vacía, así que cada mitad repite el set
+  // las veces que haga falta para lucir llena.
+  const repeatsPerHalf = Math.max(1, Math.ceil(3 / children.length))
+  const half = Array.from({ length: repeatsPerHalf }, () => children).flat()
+  const track = [...half, ...half]
+
+  return (
+    <div className="group overflow-hidden">
+      <div className="flex w-max animate-marquee gap-5 group-hover:[animation-play-state:paused]">
+        {track.map((child, i) => (
+          <div key={i} className={`shrink-0 ${itemWidthClass}`}>
+            {child}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -228,6 +265,7 @@ interface DestinationOffersSectionProps {
 export function DestinationOffersSection({
   className,
   extraLimit = 4,
+  paginated = false,
   initialOrigenCodigo,
 }: DestinationOffersSectionProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -237,6 +275,7 @@ export function DestinationOffersSection({
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [deals, setDeals] = useState<DestinationDeal[]>([])
   const [loading, setLoading] = useState(true)
+  const [visibleExtra, setVisibleExtra] = useState(extraLimit)
   const [rates, setRates] = useState<Record<string, number>>({})
 
   // País elegido en el selector de ubicación del navbar (nombre real, p. ej.
@@ -295,6 +334,13 @@ export function DestinationOffersSection({
 
   const origenActual = airports.find((a) => a.codigoIata === origenCodigo) ?? null
   const otrosDestinos = airports.filter((a) => a.codigoIata !== origenCodigo)
+
+  // Al cambiar de origen la lista de "más destinos" es otra, así que el
+  // "Ver más" vuelve a arrancar mostrando solo la primera tanda.
+  useEffect(() => {
+    setVisibleExtra(extraLimit)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origenCodigo])
 
   useEffect(() => {
     if (!origenCodigo) return
@@ -364,20 +410,21 @@ export function DestinationOffersSection({
   if (!loading && airports.length === 0) return null
 
   // Separación nacional/internacional según el país elegido en el selector
-  // de ubicación del navbar: las 3 tarjetas grandes de "Ofertas desde"
-  // muestran primero destinos del mismo país (p. ej. si el navbar está en
-  // Ecuador, ahí solo aparecen otros aeropuertos ecuatorianos); el resto
-  // (incluyendo los internacionales como Bogotá o Miami) baja a la fila
-  // compacta de abajo. Si el país elegido no tiene ningún otro destino en
-  // el catálogo (nacionales vacío), no forzamos la separación y se muestra
-  // todo mezclado como antes, para no dejar la sección vacía arriba.
+  // de ubicación del navbar: el carrusel de arriba muestra SOLO destinos del
+  // mismo país (p. ej. si el navbar está en Ecuador, ahí solo aparecen otros
+  // aeropuertos ecuatorianos, dando vueltas en loop); los internacionales
+  // (Bogotá, Miami...) bajan a la fila compacta de abajo. Si el país
+  // elegido no tiene ningún otro destino en el catálogo (nacionales vacío),
+  // no forzamos la separación y se muestra todo mezclado como antes, para
+  // no dejar la sección vacía arriba.
   const nacionales = selectedCountryName ? deals.filter((d) => d.pais === selectedCountryName) : []
   const internacionales = selectedCountryName ? deals.filter((d) => d.pais !== selectedCountryName) : deals
   const hasNacionales = nacionales.length > 0
 
-  const topDeals = hasNacionales ? nacionales.slice(0, 3) : deals.slice(0, 3)
-  const bottomPool = hasNacionales ? [...nacionales.slice(3), ...internacionales] : deals.slice(3)
-  const bottomDeals = bottomPool.slice(0, extraLimit)
+  const topDeals = hasNacionales ? nacionales : deals.slice(0, 3)
+  const bottomPool = hasNacionales ? internacionales : deals.slice(3)
+  const bottomDeals = bottomPool.slice(0, paginated ? visibleExtra : extraLimit)
+  const hasMoreBottom = paginated && bottomPool.length > visibleExtra
 
   // País de referencia para el badge Nacional/Internacional: el elegido en
   // el navbar si hay uno, si no el país del aeropuerto de origen (como antes).
@@ -443,7 +490,7 @@ export function DestinationOffersSection({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <MarqueeRow itemWidthClass="w-[85vw] sm:w-80">
             {topDeals.map((deal, i) => (
               <DestinationCard
                 key={deal.codigo}
@@ -463,7 +510,7 @@ export function DestinationOffersSection({
                 gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
               />
             ))}
-          </div>
+          </MarqueeRow>
 
           {bottomDeals.length > 0 && (
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -488,6 +535,19 @@ export function DestinationOffersSection({
                   gradient={DESTINATION_GRADIENTS[i % DESTINATION_GRADIENTS.length]}
                 />
               ))}
+            </div>
+          )}
+
+          {hasMoreBottom && (
+            <div className="mt-8 flex justify-center">
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-full px-12 py-7 text-lg"
+                onClick={() => setVisibleExtra((v) => v + extraLimit)}
+              >
+                Ver más
+              </Button>
             </div>
           )}
         </>
