@@ -23,13 +23,13 @@ interface LegalSection {
 
 function SectionCard({ section }: { section: LegalSection }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-      <ImagePlaceholder label={section.image} className="h-44 w-full rounded-none border-0 border-b border-white/10 sm:h-52" />
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <ImagePlaceholder label={section.image} className="h-44 w-full rounded-none border-0 border-b border-border sm:h-52" />
       <div className="p-6">
-        <h2 className="mb-2 text-lg font-semibold text-white">{section.heading}</h2>
+        <h2 className="mb-2 text-lg font-semibold text-foreground">{section.heading}</h2>
         <div className="space-y-2">
           {section.body.map((paragraph, i) => (
-            <p key={i} className="text-sm leading-relaxed text-white/60">
+            <p key={i} className="text-sm leading-relaxed text-muted-foreground">
               {paragraph}
             </p>
           ))}
@@ -41,16 +41,16 @@ function SectionCard({ section }: { section: LegalSection }) {
 
 function FeaturedCard({ section }: { section: LegalSection }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 sm:flex-row">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card sm:flex-row">
       <ImagePlaceholder
         label={section.image}
-        className="h-48 w-full rounded-none border-0 sm:h-auto sm:w-2/5 sm:border-r sm:border-white/10"
+        className="h-48 w-full rounded-none border-0 sm:h-auto sm:w-2/5 sm:border-r sm:border-border"
       />
       <div className="flex-1 p-8">
-        <h2 className="mb-3 text-2xl font-semibold text-white">{section.heading}</h2>
+        <h2 className="mb-3 text-2xl font-semibold text-foreground">{section.heading}</h2>
         <div className="space-y-3">
           {section.body.map((paragraph, i) => (
-            <p key={i} className="text-sm leading-relaxed text-white/60">
+            <p key={i} className="text-sm leading-relaxed text-muted-foreground">
               {paragraph}
             </p>
           ))}

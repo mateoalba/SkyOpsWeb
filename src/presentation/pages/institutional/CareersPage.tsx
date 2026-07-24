@@ -65,18 +65,23 @@ export default function CareersPage() {
       />
 
       <section className="px-4 pt-14 sm:px-6">
-        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 items-center gap-8 sm:grid-cols-2">
-          <ImagePlaceholder label="Espacio para una foto del equipo trabajando" className="h-64 w-full sm:h-80" />
-          <AdminEditableSection
-            clave={CLAVES.CAREERS_INTRO}
-            config={getBlockConfig(CLAVES.CAREERS_INTRO)}
-            initialValues={intro}
-            onSaved={handleSaved}
-          >
-            <p className="text-2xl font-semibold text-white">{intro.titulo}</p>
-            <p className="mt-3 text-sm text-white/60">{intro.texto}</p>
-          </AdminEditableSection>
-        </div>
+        <AdminEditableSection
+          clave={CLAVES.CAREERS_INTRO}
+          config={getBlockConfig(CLAVES.CAREERS_INTRO)}
+          initialValues={intro}
+          onSaved={handleSaved}
+          className="mx-auto grid w-full max-w-[1280px] grid-cols-1 items-center gap-8 sm:grid-cols-2"
+        >
+          <ImagePlaceholder
+            label="Espacio para una foto del equipo trabajando"
+            className="h-64 w-full sm:h-80"
+            imageUrl={intro.imagenUrl}
+          />
+          <div>
+            <p className="text-2xl font-semibold text-foreground">{intro.titulo}</p>
+            <p className="mt-3 text-sm text-muted-foreground">{intro.texto}</p>
+          </div>
+        </AdminEditableSection>
       </section>
 
       <section className="px-4 py-14 sm:px-6">
@@ -91,18 +96,18 @@ export default function CareersPage() {
             {ways.items.map((item, i) => {
               const Icon = WAYS_ICONS[i % WAYS_ICONS.length]
               return (
-                <div key={i} className="rounded-xl bg-black p-6">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                <div key={i} className="rounded-xl bg-card p-6">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="font-semibold text-white">{item.titulo}</p>
-                  <p className="mt-1 text-sm text-white/60">{item.texto}</p>
+                  <p className="font-semibold text-foreground">{item.titulo}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.texto}</p>
                 </div>
               )
             })}
           </AdminEditableSection>
 
-          <p className="mt-10 text-sm text-white/50">
+          <p className="mt-10 text-sm text-muted-foreground">
             Escríbenos desde <a href="mailto:contacto@skyops.edu" className="font-medium text-primary hover:underline">contacto@skyops.edu</a> — completa este correo con el que use el equipo del proyecto.
           </p>
         </div>

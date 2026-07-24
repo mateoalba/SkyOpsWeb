@@ -69,15 +69,22 @@ function FeatureRow({
   reverse?: boolean
 }) {
   const image = (
-    <ImagePlaceholder key="image" label={`Espacio para una captura de "${item.titulo}"`} className="h-52 w-full sm:h-64" />
+    <ImagePlaceholder
+      key="image"
+      label={`Espacio para una captura de "${item.titulo}"`}
+      className="h-52 w-full sm:h-64"
+      imageUrl={item.imagenUrl}
+    />
   )
   const info = (
     <div key="info">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-        <Icon className="h-5 w-5 text-primary" />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p className="text-2xl font-semibold text-foreground">{item.titulo}</p>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
       </div>
-      <p className="text-xl font-semibold text-white">{item.titulo}</p>
-      <p className="mt-2 text-sm text-white/60">{item.texto}</p>
+      <p className="text-justify text-base text-muted-foreground">{item.texto}</p>
     </div>
   )
 
@@ -103,6 +110,7 @@ export default function AboutPage() {
     titulo: 'Así construimos SkyOps',
     texto: 'Un sistema de control de vuelos de aeropuerto, hecho como proyecto académico con las mismas piezas de un producto real: búsqueda y reserva de vuelos, autenticación, y un panel de administración completo.',
   })
+  const introImage = resolveBlock(content, CLAVES.ABOUT_INTRO_IMAGE, {})
   const features = resolveBlock(content, CLAVES.ABOUT_FEATURES, { items: DEFAULT_FEATURES })
   const stack = resolveBlock(content, CLAVES.ABOUT_STACK, { items: DEFAULT_STACK })
   const team = resolveBlock(content, CLAVES.ABOUT_TEAM, { items: DEFAULT_TEAM })
@@ -117,7 +125,24 @@ export default function AboutPage() {
         editable={{ clave: CLAVES.ABOUT_HERO, config: getBlockConfig(CLAVES.ABOUT_HERO), initialValues: hero, onSaved: handleSaved }}
       />
 
-      <section className="px-4 py-14 sm:px-6">
+      <section className="relative -mt-4 px-4 pb-0 sm:px-6">
+        <div className="mx-auto w-full max-w-[1280px] border-b border-border">
+          <AdminEditableSection
+            clave={CLAVES.ABOUT_INTRO_IMAGE}
+            config={getBlockConfig(CLAVES.ABOUT_INTRO_IMAGE)}
+            initialValues={introImage}
+            onSaved={handleSaved}
+          >
+            <ImagePlaceholder
+              label="Espacio para una foto del equipo o del proyecto"
+              className="h-36 w-full rounded-2xl sm:h-65"
+              imageUrl={introImage.imagenUrl}
+            />
+          </AdminEditableSection>
+        </div>
+      </section>
+
+      <section className="px-4 pb-14 pt-12 sm:px-6">
         <AdminEditableSection
           clave={CLAVES.ABOUT_FEATURES}
           config={getBlockConfig(CLAVES.ABOUT_FEATURES)}
@@ -125,7 +150,7 @@ export default function AboutPage() {
           onSaved={handleSaved}
           className="mx-auto flex w-full max-w-[1280px] flex-col gap-14"
         >
-          <h2 className="text-2xl font-semibold tracking-tight">Qué hicimos</h2>
+          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">Qué hicimos</h2>
           {features.items.map((item, i) => (
             <FeatureRow key={i} item={item} Icon={FEATURE_ICONS[i % FEATURE_ICONS.length]} reverse={i % 2 === 1} />
           ))}
@@ -145,22 +170,23 @@ export default function AboutPage() {
               {stack.items.map((item, i) => {
                 const Icon = STACK_ICONS[i % STACK_ICONS.length]
                 return (
-                  <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-6">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                  <div key={i} className="rounded-xl border border-border bg-card p-6">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                       <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <p className="font-semibold text-white">{item.titulo}</p>
-                    <p className="mt-1 text-sm text-white/60">{item.texto}</p>
+                    <p className="font-semibold text-foreground">{item.titulo}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.texto}</p>
                   </div>
                 )
               })}
             </div>
-          </AdminEditableSection>
 
-          <ImagePlaceholder
-            label="Espacio para un diagrama de arquitectura o una captura del código"
-            className="mt-8 h-64 w-full sm:h-80"
-          />
+            <ImagePlaceholder
+              label="Espacio para un diagrama de arquitectura o una captura del código"
+              className="mt-8 h-64 w-full sm:h-80"
+              imageUrl={stack.imagenUrl}
+            />
+          </AdminEditableSection>
         </div>
       </section>
 
@@ -173,14 +199,14 @@ export default function AboutPage() {
             onSaved={handleSaved}
           >
             <h2 className="mb-2 text-2xl font-semibold tracking-tight">El equipo</h2>
-            <p className="mb-8 text-sm text-white/50">Espacio para presentar a cada integrante.</p>
+            <p className="mb-8 text-sm text-muted-foreground">Espacio para presentar a cada integrante.</p>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
               {team.items.map((member, i) => (
-                <div key={i} className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-                  <ImagePlaceholder compact className="h-24 w-24 rounded-full" />
+                <div key={i} className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center">
+                  <ImagePlaceholder compact className="h-24 w-24 rounded-full" imageUrl={member.imagenUrl} />
                   <div>
-                    <p className="font-semibold text-white">{member.titulo}</p>
-                    <p className="text-sm text-white/50">{member.texto}</p>
+                    <p className="font-semibold text-foreground">{member.titulo}</p>
+                    <p className="text-sm text-muted-foreground">{member.texto}</p>
                   </div>
                 </div>
               ))}

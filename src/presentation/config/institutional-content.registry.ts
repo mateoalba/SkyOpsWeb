@@ -4,6 +4,7 @@ import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/en
 /** Claves fijas de cada bloque editable — usadas tanto por las páginas públicas como por el admin. */
 export const CLAVES = {
   ABOUT_HERO: 'about_hero',
+  ABOUT_INTRO_IMAGE: 'about_intro_image',
   ABOUT_FEATURES: 'about_features',
   ABOUT_STACK: 'about_stack',
   ABOUT_TEAM: 'about_team',
@@ -38,6 +39,14 @@ export interface ContentBlockConfig {
   /** Si el bloque usa la lista `items` (tarjetas, preguntas, integrantes...). */
   itemsLabel?: string
   itemFields?: ItemFieldLabels
+  /**
+   * Imagen única del bloque completo (ej. el diagrama de "Cómo trabajamos",
+   * la ilustración del centro de ayuda). NUNCA en los "_hero" — esos usan
+   * Banners. Sube desde archivo o pega un link, igual que BannerForm.
+   */
+  hasImage?: boolean
+  /** Si cada tarjeta de `items` tiene su propia imagen (ej. capturas de cada feature, foto de cada integrante). */
+  itemImage?: boolean
 }
 
 export const CONTENT_BLOCKS: ContentBlockConfig[] = [
@@ -49,11 +58,18 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     textoLabel: 'Subtítulo',
   },
   {
+    clave: CLAVES.ABOUT_INTRO_IMAGE,
+    pageLabel: 'Acerca de SkyOps',
+    blockLabel: 'Imagen bajo el encabezado',
+    hasImage: true,
+  },
+  {
     clave: CLAVES.ABOUT_FEATURES,
     pageLabel: 'Acerca de SkyOps',
     blockLabel: 'Qué hicimos',
     itemsLabel: 'Tarjetas',
     itemFields: { titulo: 'Título', texto: 'Descripción' },
+    itemImage: true,
   },
   {
     clave: CLAVES.ABOUT_STACK,
@@ -61,6 +77,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'Cómo trabajamos',
     itemsLabel: 'Tarjetas',
     itemFields: { titulo: 'Título', texto: 'Descripción' },
+    hasImage: true,
   },
   {
     clave: CLAVES.ABOUT_TEAM,
@@ -68,6 +85,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'El equipo',
     itemsLabel: 'Integrantes',
     itemFields: { titulo: 'Nombre', texto: 'Rol en el proyecto' },
+    itemImage: true,
   },
   {
     clave: CLAVES.HELP_HERO,
@@ -82,6 +100,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'Preguntas frecuentes',
     itemsLabel: 'Preguntas',
     itemFields: { titulo: 'Pregunta', texto: 'Respuesta' },
+    hasImage: true,
   },
   {
     clave: CLAVES.PRESS_HERO,
@@ -96,6 +115,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'Novedades',
     itemsLabel: 'Novedades',
     itemFields: { titulo: 'Título', texto: 'Descripción' },
+    itemImage: true,
   },
   {
     clave: CLAVES.CAREERS_HERO,
@@ -110,6 +130,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'Introducción',
     tituloLabel: 'Título',
     textoLabel: 'Texto',
+    hasImage: true,
   },
   {
     clave: CLAVES.CAREERS_WAYS,
@@ -131,6 +152,7 @@ export const CONTENT_BLOCKS: ContentBlockConfig[] = [
     blockLabel: 'Repositorios',
     itemsLabel: 'Repositorios',
     itemFields: { titulo: 'Nombre', texto: 'Descripción', extra: 'Tecnologías (separadas por coma)' },
+    itemImage: true,
   },
   {
     clave: CLAVES.LEGAL_TERMINOS,

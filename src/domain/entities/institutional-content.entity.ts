@@ -10,6 +10,8 @@ export interface InstitutionalContentItem {
   titulo: string
   texto: string
   extra: string
+  /** Solo las tarjetas de los bloques que lo permiten (ver `itemImage` en el registry). */
+  imagenUrl?: string
 }
 
 export interface InstitutionalContent {

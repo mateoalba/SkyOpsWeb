@@ -72,11 +72,15 @@ export default function PressPage() {
           className="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6"
         >
           {updates.items.map((update, i) => (
-            <div key={i} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              <ImagePlaceholder label="Espacio para una captura o imagen de esta novedad" className="h-40 w-full rounded-b-none" />
+            <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
+              <ImagePlaceholder
+                label="Espacio para una captura o imagen de esta novedad"
+                className="h-40 w-full rounded-b-none"
+                imageUrl={update.imagenUrl}
+              />
               <div className="p-6">
-                <p className="font-semibold text-white">{update.titulo}</p>
-                <p className="mt-2 text-sm text-white/60">{update.texto}</p>
+                <p className="font-semibold text-foreground">{update.titulo}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{update.texto}</p>
               </div>
             </div>
           ))}

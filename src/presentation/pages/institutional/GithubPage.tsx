@@ -51,34 +51,35 @@ function RepoCard({ repo, reverse }: { repo: InstitutionalContentItem; reverse?:
       key="image"
       label="Espacio para una captura del repositorio o su README"
       className="h-56 w-full sm:h-72"
+      imageUrl={repo.imagenUrl}
     />
   )
   const info = (
     <div key="info">
       <div className="mb-3 flex items-center gap-2">
-        <GithubIcon className="h-5 w-5 text-white/70" />
-        <p className="font-mono text-lg font-semibold text-white">{repo.titulo}</p>
+        <GithubIcon className="h-5 w-5 text-muted-foreground" />
+        <p className="font-mono text-lg font-semibold text-foreground">{repo.titulo}</p>
       </div>
-      <p className="text-sm text-white/60">{repo.texto}</p>
+      <p className="text-sm text-muted-foreground">{repo.texto}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {stack.length > 0 ? (
           stack.map((tech) => (
-            <span key={tech} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">
+            <span key={tech} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
               {tech}
             </span>
           ))
         ) : (
-          <span className="rounded-full border-2 border-dashed border-white/20 px-3 py-1 text-xs text-white/40">
+          <span className="rounded-full border-2 border-dashed border-border px-3 py-1 text-xs text-muted-foreground">
             Agrega aquí el stack (ej. React Native, Flutter, Kotlin...)
           </span>
         )}
       </div>
       <div className="mt-5">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-5 py-2.5 text-sm font-medium text-white/50">
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-dashed border-border px-5 py-2.5 text-sm font-medium text-muted-foreground">
           <GithubIcon className="h-4 w-4" />
           Ver repositorio
         </span>
-        <p className="mt-2 text-xs text-white/40">
+        <p className="mt-2 text-xs text-muted-foreground">
           Reemplaza este botón con el link real a github.com/tu-usuario/{repo.titulo}
         </p>
       </div>

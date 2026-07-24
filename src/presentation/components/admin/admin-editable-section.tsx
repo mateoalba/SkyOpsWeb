@@ -16,12 +16,14 @@ import { cn } from '@/presentation/utils/cn'
 
 /**
  * Envuelve una sección de una página institucional para que un administrador
- * pueda hacer clic y editar su texto (título/subtítulo o tarjetas) ahí
- * mismo, en un formulario grande — igual que los de crear un recurso en el
- * panel admin. La imagen del encabezado se administra aparte, desde
- * /admin/banners. Para cualquier visitante que no sea staff, esto no hace
- * nada: se renderizan los `children` tal cual, sin ningún rastro de edición
- * (ni siquiera el div extra cambia de apariencia).
+ * pueda hacer clic y editar su texto (título/subtítulo o tarjetas), y donde
+ * aplique, su imagen (de bloque o por tarjeta, ver `hasImage`/`itemImage`
+ * del registry) ahí mismo, en un formulario grande — igual que los de crear
+ * un recurso en el panel admin. Los encabezados "hero" son la única
+ * excepción: su imagen se administra aparte, desde /admin/banners. Para
+ * cualquier visitante que no sea staff, esto no hace nada: se renderizan
+ * los `children` tal cual, sin ningún rastro de edición (ni siquiera el div
+ * extra cambia de apariencia).
  */
 export function AdminEditableSection({
   clave,
@@ -48,7 +50,11 @@ export function AdminEditableSection({
   // solo se omite la interactividad de edición, nunca el layout.
   if (!isStaff) return <div className={className}>{children}</div>
 
-  const handleSubmit = async (values: InstitutionalContentFormValues) => {
+  const handleSubmit = async (
+    values: InstitutionalContentFormValues,
+    imagenArchivo: File | null,
+    quitarImagen: boolean,
+  ) => {
     setIsSaving(true)
     setError(null)
     try {
@@ -56,6 +62,9 @@ export function AdminEditableSection({
         titulo: values.titulo,
         texto: values.texto,
         items: values.items,
+        imagenUrl: values.imagenUrl,
+        imagenArchivo: imagenArchivo ?? undefined,
+        quitarImagen,
       })
       onSaved(updated)
       setOpen(false)
@@ -87,7 +96,7 @@ export function AdminEditableSection({
           // `ring-offset` pinta su color SIEMPRE (incluso con ring-transparent),
           // así que el ring completo (con offset) va solo dentro de hover: —
           // fuera de hover no hay ninguna clase de ring puesta, cero rastro.
-          'group/editable relative w-full cursor-pointer rounded-xl transition-shadow hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-black',
+          'group/editable relative w-full cursor-pointer rounded-xl transition-shadow hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background',
           className,
         )}
       >

@@ -19,4 +19,6 @@ export interface UpdateInstitutionalContentPayload {
 export interface InstitutionalContentRepository {
   listInstitutionalContent(): Promise<InstitutionalContent[]>
   updateInstitutionalContent(clave: string, payload: UpdateInstitutionalContentPayload): Promise<InstitutionalContent>
+  /** Sube un archivo suelto (imagen de una tarjeta dentro de un bloque de lista) y devuelve su URL. */
+  uploadItemImage(file: File): Promise<string>
 }

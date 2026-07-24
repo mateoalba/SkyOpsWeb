@@ -75,30 +75,31 @@ export default function HelpPage() {
       />
 
       <section className="px-4 py-14 sm:px-6">
-        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]">
-          <AdminEditableSection
-            clave={CLAVES.HELP_FAQ}
-            config={getBlockConfig(CLAVES.HELP_FAQ)}
-            initialValues={faqs}
-            onSaved={handleSaved}
-            className="space-y-3"
-          >
+        <AdminEditableSection
+          clave={CLAVES.HELP_FAQ}
+          config={getBlockConfig(CLAVES.HELP_FAQ)}
+          initialValues={faqs}
+          onSaved={handleSaved}
+          className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]"
+        >
+          <div className="space-y-3">
             {faqs.items.map((faq, i) => (
-              <details key={i} className="group rounded-xl border border-white/10 bg-white/5 open:bg-white/[0.08]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-white">
+              <details key={i} className="group rounded-xl border border-border bg-card open:bg-muted/50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-foreground">
                   {faq.titulo}
-                  <ChevronDown className="h-4 w-4 shrink-0 text-white/50 transition-transform group-open:rotate-180" />
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
-                <p className="px-5 pb-5 text-sm text-white/60">{faq.texto}</p>
+                <p className="px-5 pb-5 text-sm text-muted-foreground">{faq.texto}</p>
               </details>
             ))}
-          </AdminEditableSection>
+          </div>
 
           <ImagePlaceholder
             label="Espacio para una ilustración o captura de ayuda"
             className="h-64 lg:sticky lg:top-24 lg:h-full lg:min-h-[24rem]"
+            imageUrl={faqs.imagenUrl}
           />
-        </div>
+        </AdminEditableSection>
       </section>
     </div>
   )

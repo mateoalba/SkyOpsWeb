@@ -23,13 +23,18 @@ interface EditableHero {
 /**
  * Encabezado compartido de las páginas institucionales (Acerca de, Ayuda,
  * Prensa, Trabaja con nosotros, legales): breadcrumb + título grande +
- * subtítulo, sobre fondo oscuro — mismo lenguaje que el hero del Home.
+ * subtítulo, SIEMPRE sobre fondo oscuro con texto blanco — a propósito, sin
+ * importar el tema claro/oscuro activo, igual que el hero del Home. El
+ * fondo es una foto configurable desde /admin/banners, así que necesita un
+ * velo oscuro fijo para que el texto siga siendo legible sin importar qué
+ * tan clara sea la imagen que suba un admin; si esto siguiera el tema
+ * claro/oscuro del sitio, en modo claro el velo se aclararía junto con la
+ * imagen y el texto perdería contraste (ya pasó: ver commit que lo revirtió).
  *
  * La imagen de fondo vive en el sistema de Banners (`bannerClave`, editable
  * desde /admin/banners → "Páginas institucionales"), igual que ya hace el
  * hero del Home o el de login — no en el contenido institucional, que aquí
- * solo cubre texto. Se pinta a toda la sección con un degradado oscuro
- * encima para que el título siga siendo legible.
+ * solo cubre texto.
  *
  * Si se pasa `editable`, el título/subtítulo quedan envueltos en
  * `AdminEditableSection` (clic para editar, solo staff) — el breadcrumb
@@ -59,19 +64,38 @@ export function PageHero({
       .catch(() => setImageUrl(null))
   }, [bannerClave])
 
+  // Ojo: SIN z-index negativo (a diferencia de un intento anterior). El
+  // <section> es `position: relative` pero no fija su propio `z-index`, así
+  // que no abre un stacking context propio — un hijo con z-index negativo se
+  // escaparía detrás del contexto de la raíz (a veces detrás de TODO,
+  // banner "invisible" aunque cargue bien). Iguala el patrón ya probado del
+  // hero del Home: la imagen va primero en el DOM con z-index automático, y
+  // el contenido de encima simplemente va después (y es `position: relative`),
+  // así el orden del DOM alcanza para pintarlo arriba sin trucos de z-index.
+
   const content = (
     <>
-      <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
-      {subtitle && <p className="mt-4 max-w-2xl text-base text-white/70 sm:text-lg">{subtitle}</p>}
+      <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl">{title}</h1>
+      {subtitle && <p className="mt-4 text-justify text-base text-white/70 sm:text-lg">{subtitle}</p>}
     </>
   )
 
   return (
-    <section className="relative flex min-h-[22rem] flex-col justify-center overflow-hidden bg-black px-4 py-16 text-white sm:px-6">
+    <section className="relative flex min-h-[22rem] flex-col justify-start overflow-hidden bg-black px-4 pb-16 pt-12 text-white sm:px-6">
       {imageUrl && (
         <>
-          <img src={imageUrl} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/50 via-black/70 to-black" />
+          <img
+            src={imageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setImageUrl(null)}
+          />
+          {/* Arriba, negro fijo (para que el título/subtítulo se lean sobre
+              cualquier imagen, sin importar el tema) — abajo, se funde con
+              `background` (el color real de la página, claro u oscuro) en
+              vez de negro fijo, para que el borde inferior de la imagen no
+              corte en seco contra la siguiente sección. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 via-55% to-background" />
         </>
       )}
 

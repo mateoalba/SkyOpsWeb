@@ -11,6 +11,7 @@ interface RawItem {
   titulo?: string
   texto?: string
   extra?: string
+  imagenUrl?: string
 }
 
 interface RawInstitutionalContent {
@@ -23,7 +24,7 @@ interface RawInstitutionalContent {
 }
 
 function toItem(raw: RawItem): InstitutionalContentItem {
-  return { titulo: raw.titulo ?? '', texto: raw.texto ?? '', extra: raw.extra ?? '' }
+  return { titulo: raw.titulo ?? '', texto: raw.texto ?? '', extra: raw.extra ?? '', imagenUrl: raw.imagenUrl ?? '' }
 }
 
 function toItemsArray(raw: RawInstitutionalContent['items']): RawItem[] {
@@ -101,6 +102,21 @@ export class InstitutionalContentRepositoryAxiosAdapter implements Institutional
         quitar_imagen: payload.quitarImagen ?? false,
       })
       return toInstitutionalContent(data)
+    } catch (error) {
+      throw parseApiError(error)
+    }
+  }
+
+  async uploadItemImage(file: File): Promise<string> {
+    try {
+      const formData = new FormData()
+      formData.append('archivo', file)
+      const { data } = await this.http.post<{ imagen_url: string }>(
+        '/contenido-institucional/subir-imagen/',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
+      return data.imagen_url
     } catch (error) {
       throw parseApiError(error)
     }
