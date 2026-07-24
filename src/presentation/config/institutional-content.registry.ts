@@ -168,6 +168,12 @@ export function toContentMap(list: InstitutionalContent[]): InstitutionalContent
   return Object.fromEntries(list.map((c) => [c.clave, c]))
 }
 
+export function getBlockConfig(clave: string): ContentBlockConfig {
+  const config = CONTENT_BLOCKS.find((b) => b.clave === clave)
+  if (!config) throw new Error(`No hay configuración registrada para la clave "${clave}".`)
+  return config
+}
+
 interface BlockFallback {
   titulo?: string
   texto?: string
@@ -179,7 +185,8 @@ interface BlockFallback {
  * valor por defecto (el texto actual hardcodeado) en los campos vacíos —
  * mismo criterio que ya usa el Home con los banners (`banner?.titulo ||
  * 'texto por defecto'`), así ninguna página se queda "vacía" mientras nadie
- * ha configurado nada todavía.
+ * ha configurado nada todavía. `imagenUrl` no tiene fallback: si nadie subió
+ * una imagen todavía, queda `null` y la página muestra el placeholder.
  */
 export function resolveBlock(map: InstitutionalContentMap, clave: string, fallback: BlockFallback) {
   const found = map[clave]
@@ -187,5 +194,10 @@ export function resolveBlock(map: InstitutionalContentMap, clave: string, fallba
     titulo: found?.titulo || fallback.titulo || '',
     texto: found?.texto || fallback.texto || '',
     items: found && found.items.length > 0 ? found.items : (fallback.items ?? []),
+    // '' (no `null`), igual que ya hace BannerForm con imagenUrl: encaja
+    // directo como initialValues del formulario, y en un `if (imagenUrl)`
+    // para decidir si mostrar la imagen real o el placeholder se comporta
+    // idéntico a `null`.
+    imagenUrl: found?.imagenUrl || '',
   }
 }

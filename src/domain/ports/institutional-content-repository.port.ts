@@ -5,6 +5,9 @@ export interface UpdateInstitutionalContentPayload {
   titulo?: string
   texto?: string
   items?: InstitutionalContentItem[]
+  imagenUrl?: string
+  imagenArchivo?: File
+  quitarImagen?: boolean
 }
 
 /**

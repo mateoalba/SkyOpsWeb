@@ -3,9 +3,16 @@ import { useEffect, useState } from 'react'
 import { Search, Ticket, ShieldCheck, Users, Code2, Workflow } from 'lucide-react'
 import { PageHero } from '@/presentation/components/institutional/page-hero'
 import { ImagePlaceholder } from '@/presentation/components/institutional/image-placeholder'
+import { AdminEditableSection } from '@/presentation/components/admin/admin-editable-section'
 import { listInstitutionalContentUseCase } from '@/infrastructure/factories/institutional-content.factory'
-import { CLAVES, resolveBlock, toContentMap, type InstitutionalContentMap } from '@/presentation/config/institutional-content.registry'
-import type { InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
+import {
+  CLAVES,
+  getBlockConfig,
+  resolveBlock,
+  toContentMap,
+  type InstitutionalContentMap,
+} from '@/presentation/config/institutional-content.registry'
+import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
 
 const DEFAULT_FEATURES: InstitutionalContentItem[] = [
   {
@@ -88,46 +95,67 @@ export default function AboutPage() {
     listInstitutionalContentUseCase.execute().then((list) => setContent(toContentMap(list))).catch(() => setContent({}))
   }, [])
 
+  const handleSaved = (updated: InstitutionalContent) => {
+    setContent((prev) => ({ ...prev, [updated.clave]: updated }))
+  }
+
   const hero = resolveBlock(content, CLAVES.ABOUT_HERO, {
     titulo: 'Así construimos SkyOps',
     texto: 'Un sistema de control de vuelos de aeropuerto, hecho como proyecto académico con las mismas piezas de un producto real: búsqueda y reserva de vuelos, autenticación, y un panel de administración completo.',
   })
-  const features = resolveBlock(content, CLAVES.ABOUT_FEATURES, { items: DEFAULT_FEATURES }).items
-  const stack = resolveBlock(content, CLAVES.ABOUT_STACK, { items: DEFAULT_STACK }).items
-  const team = resolveBlock(content, CLAVES.ABOUT_TEAM, { items: DEFAULT_TEAM }).items
+  const features = resolveBlock(content, CLAVES.ABOUT_FEATURES, { items: DEFAULT_FEATURES })
+  const stack = resolveBlock(content, CLAVES.ABOUT_STACK, { items: DEFAULT_STACK })
+  const team = resolveBlock(content, CLAVES.ABOUT_TEAM, { items: DEFAULT_TEAM })
 
   return (
     <div className="flex flex-col">
-      <PageHero crumbs={[{ label: 'Compañía' }, { label: 'Acerca de SkyOps' }]} title={hero.titulo} subtitle={hero.texto}>
-        <ImagePlaceholder label="Espacio para una foto del equipo o del proyecto" className="mt-8 h-56 w-full sm:h-72" />
-      </PageHero>
+      <PageHero
+        crumbs={[{ label: 'Compañía' }, { label: 'Acerca de SkyOps' }]}
+        title={hero.titulo}
+        subtitle={hero.texto}
+        bannerClave={CLAVES.ABOUT_HERO}
+        editable={{ clave: CLAVES.ABOUT_HERO, config: getBlockConfig(CLAVES.ABOUT_HERO), initialValues: hero, onSaved: handleSaved }}
+      />
 
       <section className="px-4 py-14 sm:px-6">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-14">
+        <AdminEditableSection
+          clave={CLAVES.ABOUT_FEATURES}
+          config={getBlockConfig(CLAVES.ABOUT_FEATURES)}
+          initialValues={features}
+          onSaved={handleSaved}
+          className="mx-auto flex w-full max-w-[1280px] flex-col gap-14"
+        >
           <h2 className="text-2xl font-semibold tracking-tight">Qué hicimos</h2>
-          {features.map((item, i) => (
+          {features.items.map((item, i) => (
             <FeatureRow key={i} item={item} Icon={FEATURE_ICONS[i % FEATURE_ICONS.length]} reverse={i % 2 === 1} />
           ))}
-        </div>
+        </AdminEditableSection>
       </section>
 
       <section className="px-4 pb-14 sm:px-6">
         <div className="mx-auto w-full max-w-[1280px]">
-          <h2 className="mb-8 text-2xl font-semibold tracking-tight">Cómo trabajamos</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {stack.map((item, i) => {
-              const Icon = STACK_ICONS[i % STACK_ICONS.length]
-              return (
-                <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                    <Icon className="h-5 w-5 text-primary" />
+          <AdminEditableSection
+            clave={CLAVES.ABOUT_STACK}
+            config={getBlockConfig(CLAVES.ABOUT_STACK)}
+            initialValues={stack}
+            onSaved={handleSaved}
+          >
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight">Cómo trabajamos</h2>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+              {stack.items.map((item, i) => {
+                const Icon = STACK_ICONS[i % STACK_ICONS.length]
+                return (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-6">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <p className="font-semibold text-white">{item.titulo}</p>
+                    <p className="mt-1 text-sm text-white/60">{item.texto}</p>
                   </div>
-                  <p className="font-semibold text-white">{item.titulo}</p>
-                  <p className="mt-1 text-sm text-white/60">{item.texto}</p>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          </AdminEditableSection>
 
           <ImagePlaceholder
             label="Espacio para un diagrama de arquitectura o una captura del código"
@@ -138,21 +166,26 @@ export default function AboutPage() {
 
       <section className="px-4 pb-20 sm:px-6">
         <div className="mx-auto w-full max-w-[1280px]">
-          <h2 className="mb-2 text-2xl font-semibold tracking-tight">El equipo</h2>
-          <p className="mb-8 text-sm text-white/50">
-            Espacio para presentar a cada integrante — edítalo desde /admin/contenido-institucional con su nombre y rol reales.
-          </p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {team.map((member, i) => (
-              <div key={i} className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-                <ImagePlaceholder compact className="h-24 w-24 rounded-full" />
-                <div>
-                  <p className="font-semibold text-white">{member.titulo}</p>
-                  <p className="text-sm text-white/50">{member.texto}</p>
+          <AdminEditableSection
+            clave={CLAVES.ABOUT_TEAM}
+            config={getBlockConfig(CLAVES.ABOUT_TEAM)}
+            initialValues={team}
+            onSaved={handleSaved}
+          >
+            <h2 className="mb-2 text-2xl font-semibold tracking-tight">El equipo</h2>
+            <p className="mb-8 text-sm text-white/50">Espacio para presentar a cada integrante.</p>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
+              {team.items.map((member, i) => (
+                <div key={i} className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-6 text-center">
+                  <ImagePlaceholder compact className="h-24 w-24 rounded-full" />
+                  <div>
+                    <p className="font-semibold text-white">{member.titulo}</p>
+                    <p className="text-sm text-white/50">{member.texto}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </AdminEditableSection>
         </div>
       </section>
     </div>

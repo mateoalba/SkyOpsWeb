@@ -30,6 +30,22 @@ const CLAVES_WEB = [
   { clave: 'login_hero', label: 'Encabezado de login' },
 ]
 
+// Encabezado (imagen de fondo) de cada página institucional pública —
+// el texto de esas páginas se edita directo ahí (clic en el título, solo
+// admin), pero la imagen vive acá para reusar el mismo subidor de archivo
+// que ya tiene el resto de banners.
+const CLAVES_INSTITUCIONALES = [
+  { clave: 'about_hero', label: 'Acerca de SkyOps' },
+  { clave: 'help_hero', label: 'Centro de ayuda' },
+  { clave: 'press_hero', label: 'Sala de prensa' },
+  { clave: 'careers_hero', label: 'Trabaja con nosotros' },
+  { clave: 'github_hero', label: 'GitHub' },
+  { clave: 'legal_terminos_hero', label: 'Términos y condiciones' },
+  { clave: 'legal_privacidad_hero', label: 'Política de privacidad' },
+  { clave: 'legal_cookies_hero', label: 'Política de cookies' },
+  { clave: 'legal_transporte_hero', label: 'Condiciones de transporte' },
+]
+
 const CLAVES_MOVIL = [
   { clave: 'oferta_1', label: 'Oferta destacada 1' },
   { clave: 'oferta_2', label: 'Oferta destacada 2' },
@@ -297,6 +313,23 @@ export default function BannersPage() {
 
           <div>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Páginas institucionales
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {CLAVES_INSTITUCIONALES.map(({ clave, label }) => (
+                <BannerCard
+                  key={clave}
+                  clave={clave}
+                  label={label}
+                  banner={banners[clave]}
+                  onEdit={() => setEditingClave(clave)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               App móvil (Flutter)
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -319,7 +352,8 @@ export default function BannersPage() {
           <DialogHeader>
             <DialogTitle>
               Editar banner —{' '}
-              {[...CLAVES_WEB, ...CLAVES_MOVIL].find((c) => c.clave === editingClave)?.label ?? editingClave}
+              {[...CLAVES_WEB, ...CLAVES_INSTITUCIONALES, ...CLAVES_MOVIL].find((c) => c.clave === editingClave)
+                ?.label ?? editingClave}
             </DialogTitle>
           </DialogHeader>
           <BannerForm

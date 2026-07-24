@@ -3,9 +3,16 @@ import { useEffect, useState } from 'react'
 import { GitBranch, Lightbulb, MessagesSquare } from 'lucide-react'
 import { PageHero } from '@/presentation/components/institutional/page-hero'
 import { ImagePlaceholder } from '@/presentation/components/institutional/image-placeholder'
+import { AdminEditableSection } from '@/presentation/components/admin/admin-editable-section'
 import { listInstitutionalContentUseCase } from '@/infrastructure/factories/institutional-content.factory'
-import { CLAVES, resolveBlock, toContentMap, type InstitutionalContentMap } from '@/presentation/config/institutional-content.registry'
-import type { InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
+import {
+  CLAVES,
+  getBlockConfig,
+  resolveBlock,
+  toContentMap,
+  type InstitutionalContentMap,
+} from '@/presentation/config/institutional-content.registry'
+import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
 
 const DEFAULT_WAYS: InstitutionalContentItem[] = [
   {
@@ -33,6 +40,10 @@ export default function CareersPage() {
     listInstitutionalContentUseCase.execute().then((list) => setContent(toContentMap(list))).catch(() => setContent({}))
   }, [])
 
+  const handleSaved = (updated: InstitutionalContent) => {
+    setContent((prev) => ({ ...prev, [updated.clave]: updated }))
+  }
+
   const hero = resolveBlock(content, CLAVES.CAREERS_HERO, {
     titulo: 'Súmate al proyecto',
     texto: 'SkyOps es un proyecto académico en constante desarrollo dentro de la Universidad UTE. No es una empresa que contrata, pero sí un espacio abierto a quien quiera aportar.',
@@ -41,28 +52,43 @@ export default function CareersPage() {
     titulo: 'Un proyecto vivo, siempre en construcción',
     texto: 'Cada versión de SkyOps suma algo nuevo. Si te interesa el desarrollo de software, la aviación o simplemente quieres aprender viendo un proyecto real por dentro, hay lugar para ti.',
   })
-  const ways = resolveBlock(content, CLAVES.CAREERS_WAYS, { items: DEFAULT_WAYS }).items
+  const ways = resolveBlock(content, CLAVES.CAREERS_WAYS, { items: DEFAULT_WAYS })
 
   return (
     <div className="flex flex-col">
-      <PageHero crumbs={[{ label: 'Compañía' }, { label: 'Trabaja con nosotros' }]} title={hero.titulo} subtitle={hero.texto}>
-        <ImagePlaceholder label="Espacio para una imagen de bienvenida" className="mt-8 h-56 w-full sm:h-72" />
-      </PageHero>
+      <PageHero
+        crumbs={[{ label: 'Compañía' }, { label: 'Trabaja con nosotros' }]}
+        title={hero.titulo}
+        subtitle={hero.texto}
+        bannerClave={CLAVES.CAREERS_HERO}
+        editable={{ clave: CLAVES.CAREERS_HERO, config: getBlockConfig(CLAVES.CAREERS_HERO), initialValues: hero, onSaved: handleSaved }}
+      />
 
       <section className="px-4 pt-14 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 items-center gap-8 sm:grid-cols-2">
           <ImagePlaceholder label="Espacio para una foto del equipo trabajando" className="h-64 w-full sm:h-80" />
-          <div>
+          <AdminEditableSection
+            clave={CLAVES.CAREERS_INTRO}
+            config={getBlockConfig(CLAVES.CAREERS_INTRO)}
+            initialValues={intro}
+            onSaved={handleSaved}
+          >
             <p className="text-2xl font-semibold text-white">{intro.titulo}</p>
             <p className="mt-3 text-sm text-white/60">{intro.texto}</p>
-          </div>
+          </AdminEditableSection>
         </div>
       </section>
 
       <section className="px-4 py-14 sm:px-6">
         <div className="mx-auto w-full max-w-[1280px]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {ways.map((item, i) => {
+          <AdminEditableSection
+            clave={CLAVES.CAREERS_WAYS}
+            config={getBlockConfig(CLAVES.CAREERS_WAYS)}
+            initialValues={ways}
+            onSaved={handleSaved}
+            className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4"
+          >
+            {ways.items.map((item, i) => {
               const Icon = WAYS_ICONS[i % WAYS_ICONS.length]
               return (
                 <div key={i} className="rounded-xl bg-black p-6">
@@ -74,7 +100,7 @@ export default function CareersPage() {
                 </div>
               )
             })}
-          </div>
+          </AdminEditableSection>
 
           <p className="mt-10 text-sm text-white/50">
             Escríbenos desde <a href="mailto:contacto@skyops.edu" className="font-medium text-primary hover:underline">contacto@skyops.edu</a> — completa este correo con el que use el equipo del proyecto.

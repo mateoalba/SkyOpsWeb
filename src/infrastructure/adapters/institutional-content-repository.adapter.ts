@@ -18,6 +18,7 @@ interface RawInstitutionalContent {
   titulo: string
   texto: string
   items: RawItem[]
+  imagen_url: string | null
   actualizado_en: string
 }
 
@@ -25,12 +26,30 @@ function toItem(raw: RawItem): InstitutionalContentItem {
   return { titulo: raw.titulo ?? '', texto: raw.texto ?? '', extra: raw.extra ?? '' }
 }
 
+function toItemsArray(raw: RawInstitutionalContent['items']): RawItem[] {
+  if (Array.isArray(raw)) return raw
+  // Defensivo: un backend desactualizado (sin el parseo de 'items' como JSON
+  // en multipart) puede devolver el string tal cual se mandó, en vez de la
+  // lista ya decodificada. Nunca debe tumbar la página — si no es un array
+  // usable, se trata como lista vacía.
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 function toInstitutionalContent(raw: RawInstitutionalContent): InstitutionalContent {
   return {
     clave: raw.clave,
     titulo: raw.titulo,
     texto: raw.texto,
-    items: (raw.items ?? []).map(toItem),
+    items: toItemsArray(raw.items).map(toItem),
+    imagenUrl: raw.imagen_url,
     actualizadoEn: raw.actualizado_en,
   }
 }
@@ -62,10 +81,24 @@ export class InstitutionalContentRepositoryAxiosAdapter implements Institutional
     payload: UpdateInstitutionalContentPayload,
   ): Promise<InstitutionalContent> {
     try {
+      if (payload.imagenArchivo) {
+        const formData = new FormData()
+        if (payload.titulo !== undefined) formData.append('titulo', payload.titulo)
+        if (payload.texto !== undefined) formData.append('texto', payload.texto)
+        if (payload.items !== undefined) formData.append('items', JSON.stringify(payload.items))
+        formData.append('imagen_upload', payload.imagenArchivo)
+        const { data } = await this.http.put<RawInstitutionalContent>(`/contenido-institucional/${clave}/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return toInstitutionalContent(data)
+      }
+
       const { data } = await this.http.put<RawInstitutionalContent>(`/contenido-institucional/${clave}/`, {
         titulo: payload.titulo,
         texto: payload.texto,
         items: payload.items,
+        imagen_url: payload.imagenUrl,
+        quitar_imagen: payload.quitarImagen ?? false,
       })
       return toInstitutionalContent(data)
     } catch (error) {

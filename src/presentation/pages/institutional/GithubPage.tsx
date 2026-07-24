@@ -3,9 +3,16 @@ import { useEffect, useState } from 'react'
 import type { SVGProps } from 'react'
 import { PageHero } from '@/presentation/components/institutional/page-hero'
 import { ImagePlaceholder } from '@/presentation/components/institutional/image-placeholder'
+import { AdminEditableSection } from '@/presentation/components/admin/admin-editable-section'
 import { listInstitutionalContentUseCase } from '@/infrastructure/factories/institutional-content.factory'
-import { CLAVES, resolveBlock, toContentMap, type InstitutionalContentMap } from '@/presentation/config/institutional-content.registry'
-import type { InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
+import {
+  CLAVES,
+  getBlockConfig,
+  resolveBlock,
+  toContentMap,
+  type InstitutionalContentMap,
+} from '@/presentation/config/institutional-content.registry'
+import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
 
 function GithubIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -92,24 +99,38 @@ export default function GithubPage() {
     listInstitutionalContentUseCase.execute().then((list) => setContent(toContentMap(list))).catch(() => setContent({}))
   }, [])
 
+  const handleSaved = (updated: InstitutionalContent) => {
+    setContent((prev) => ({ ...prev, [updated.clave]: updated }))
+  }
+
   const hero = resolveBlock(content, CLAVES.GITHUB_HERO, {
     titulo: 'Nuestro código en GitHub',
     texto: 'SkyOps está dividido en tres repositorios: la aplicación web, la API que la respalda, y la app móvil.',
   })
-  const repos = resolveBlock(content, CLAVES.GITHUB_REPOS, { items: DEFAULT_REPOS }).items
+  const repos = resolveBlock(content, CLAVES.GITHUB_REPOS, { items: DEFAULT_REPOS })
 
   return (
     <div className="flex flex-col">
-      <PageHero crumbs={[{ label: 'Compañía' }, { label: 'GitHub' }]} title={hero.titulo} subtitle={hero.texto}>
-        <ImagePlaceholder label="Espacio para una imagen general del proyecto" className="mt-8 h-56 w-full sm:h-72" />
-      </PageHero>
+      <PageHero
+        crumbs={[{ label: 'Compañía' }, { label: 'GitHub' }]}
+        title={hero.titulo}
+        subtitle={hero.texto}
+        bannerClave={CLAVES.GITHUB_HERO}
+        editable={{ clave: CLAVES.GITHUB_HERO, config: getBlockConfig(CLAVES.GITHUB_HERO), initialValues: hero, onSaved: handleSaved }}
+      />
 
       <section className="px-4 py-14 sm:px-6">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-16">
-          {repos.map((repo, i) => (
+        <AdminEditableSection
+          clave={CLAVES.GITHUB_REPOS}
+          config={getBlockConfig(CLAVES.GITHUB_REPOS)}
+          initialValues={repos}
+          onSaved={handleSaved}
+          className="mx-auto flex w-full max-w-[1280px] flex-col gap-16"
+        >
+          {repos.items.map((repo, i) => (
             <RepoCard key={i} repo={repo} reverse={i % 2 === 1} />
           ))}
-        </div>
+        </AdminEditableSection>
       </section>
     </div>
   )

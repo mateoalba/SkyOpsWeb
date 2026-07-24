@@ -17,5 +17,7 @@ export interface InstitutionalContent {
   titulo: string
   texto: string
   items: InstitutionalContentItem[]
+  /** Solo los bloques "hero" de cada página la usan por ahora. */
+  imagenUrl: string | null
   actualizadoEn: string
 }

@@ -3,9 +3,16 @@ import { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { PageHero } from '@/presentation/components/institutional/page-hero'
 import { ImagePlaceholder } from '@/presentation/components/institutional/image-placeholder'
+import { AdminEditableSection } from '@/presentation/components/admin/admin-editable-section'
 import { listInstitutionalContentUseCase } from '@/infrastructure/factories/institutional-content.factory'
-import { CLAVES, resolveBlock, toContentMap, type InstitutionalContentMap } from '@/presentation/config/institutional-content.registry'
-import type { InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
+import {
+  CLAVES,
+  getBlockConfig,
+  resolveBlock,
+  toContentMap,
+  type InstitutionalContentMap,
+} from '@/presentation/config/institutional-content.registry'
+import type { InstitutionalContent, InstitutionalContentItem } from '@/domain/entities/institutional-content.entity'
 
 const DEFAULT_FAQS: InstitutionalContentItem[] = [
   {
@@ -47,22 +54,36 @@ export default function HelpPage() {
     listInstitutionalContentUseCase.execute().then((list) => setContent(toContentMap(list))).catch(() => setContent({}))
   }, [])
 
+  const handleSaved = (updated: InstitutionalContent) => {
+    setContent((prev) => ({ ...prev, [updated.clave]: updated }))
+  }
+
   const hero = resolveBlock(content, CLAVES.HELP_HERO, {
     titulo: 'Centro de ayuda',
     texto: 'Respuestas rápidas a las preguntas más comunes sobre SkyOps.',
   })
-  const faqs = resolveBlock(content, CLAVES.HELP_FAQ, { items: DEFAULT_FAQS }).items
+  const faqs = resolveBlock(content, CLAVES.HELP_FAQ, { items: DEFAULT_FAQS })
 
   return (
     <div className="flex flex-col">
-      <PageHero crumbs={[{ label: 'Compañía' }, { label: 'Centro de ayuda' }]} title={hero.titulo} subtitle={hero.texto}>
-        <ImagePlaceholder label="Espacio para una imagen del centro de ayuda" className="mt-8 h-56 w-full sm:h-72" />
-      </PageHero>
+      <PageHero
+        crumbs={[{ label: 'Compañía' }, { label: 'Centro de ayuda' }]}
+        title={hero.titulo}
+        subtitle={hero.texto}
+        bannerClave={CLAVES.HELP_HERO}
+        editable={{ clave: CLAVES.HELP_HERO, config: getBlockConfig(CLAVES.HELP_HERO), initialValues: hero, onSaved: handleSaved }}
+      />
 
       <section className="px-4 py-14 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-3">
-            {faqs.map((faq, i) => (
+          <AdminEditableSection
+            clave={CLAVES.HELP_FAQ}
+            config={getBlockConfig(CLAVES.HELP_FAQ)}
+            initialValues={faqs}
+            onSaved={handleSaved}
+            className="space-y-3"
+          >
+            {faqs.items.map((faq, i) => (
               <details key={i} className="group rounded-xl border border-white/10 bg-white/5 open:bg-white/[0.08]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-white">
                   {faq.titulo}
@@ -71,7 +92,7 @@ export default function HelpPage() {
                 <p className="px-5 pb-5 text-sm text-white/60">{faq.texto}</p>
               </details>
             ))}
-          </div>
+          </AdminEditableSection>
 
           <ImagePlaceholder
             label="Espacio para una ilustración o captura de ayuda"

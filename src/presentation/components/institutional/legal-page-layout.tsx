@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
 import { PageHero } from '@/presentation/components/institutional/page-hero'
 import { ImagePlaceholder } from '@/presentation/components/institutional/image-placeholder'
+import { AdminEditableSection } from '@/presentation/components/admin/admin-editable-section'
 import { cn } from '@/presentation/utils/cn'
 import { listInstitutionalContentUseCase } from '@/infrastructure/factories/institutional-content.factory'
-import { resolveBlock, toContentMap, type InstitutionalContentMap } from '@/presentation/config/institutional-content.registry'
+import {
+  getBlockConfig,
+  resolveBlock,
+  toContentMap,
+  type InstitutionalContentMap,
+} from '@/presentation/config/institutional-content.registry'
+import type { InstitutionalContent } from '@/domain/entities/institutional-content.entity'
 
 interface LegalSection {
   heading: string
@@ -91,9 +98,14 @@ export function LegalPageLayout({
     listInstitutionalContentUseCase.execute().then((list) => setContent(toContentMap(list))).catch(() => setContent({}))
   }, [])
 
-  const items = resolveBlock(content, clave, {
+  const handleSaved = (updated: InstitutionalContent) => {
+    setContent((prev) => ({ ...prev, [updated.clave]: updated }))
+  }
+
+  const resolved = resolveBlock(content, clave, {
     items: sections.map((s) => ({ titulo: s.heading, texto: s.body.join('\n\n'), extra: s.image })),
-  }).items
+  })
+  const items = resolved.items
 
   const merged: LegalSection[] = sections.map((section, i) => {
     const item = items[i]
@@ -115,12 +127,17 @@ export function LegalPageLayout({
         crumbs={[{ label: 'Información legal' }, { label: title }]}
         title={title}
         subtitle={`Última actualización: ${updatedAt}.`}
-      >
-        <ImagePlaceholder label="Espacio para una imagen destacada" className="mt-8 h-56 w-full sm:h-72" />
-      </PageHero>
+        bannerClave={`${clave}_hero`}
+      />
 
       <section className="px-4 py-14 sm:px-6">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+        <AdminEditableSection
+          clave={clave}
+          config={getBlockConfig(clave)}
+          initialValues={resolved}
+          onSaved={handleSaved}
+          className="mx-auto flex w-full max-w-[1280px] flex-col gap-6"
+        >
           {featured.map((section, i) => (
             <FeaturedCard key={i} section={section} />
           ))}
@@ -130,7 +147,7 @@ export function LegalPageLayout({
               <SectionCard key={i} section={section} />
             ))}
           </div>
-        </div>
+        </AdminEditableSection>
       </section>
     </div>
   )
